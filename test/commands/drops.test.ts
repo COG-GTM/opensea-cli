@@ -622,6 +622,32 @@ describe("dropsCommand", () => {
       expect(wallet.sendTransaction).not.toHaveBeenCalled()
     })
 
+    it("deploy --send refuses a contract-creation transaction with no to", async () => {
+      vi.spyOn(console, "error").mockImplementation(() => {})
+      ctx.mockClient.post.mockResolvedValue({ ...deployTx, to: null })
+      const wallet = evmWallet(OWNER)
+      walletMock.createWalletFromEnv.mockReturnValue(wallet)
+
+      const cmd = dropsCommand(ctx.getClient, ctx.getFormat)
+      await expect(
+        cmd.parseAsync([...deployArgs, "--send"], { from: "user" }),
+      ).rejects.toThrow("contract-creation transaction with no `to` address")
+
+      expect(wallet.sendTransaction).not.toHaveBeenCalled()
+    })
+
+    it("deploy rejects an unknown --drop-type before any request", async () => {
+      const args = [...deployArgs]
+      args[args.indexOf("--drop-type") + 1] = "seadrop_v9"
+
+      const cmd = dropsCommand(ctx.getClient, ctx.getFormat)
+      await expect(cmd.parseAsync(args, { from: "user" })).rejects.toThrow(
+        'Invalid value for --drop-type: "seadrop_v9"',
+      )
+
+      expect(ctx.mockClient.post).not.toHaveBeenCalled()
+    })
+
     it("deploy --send rejects a Solana wallet before building the transaction", async () => {
       const stderr = vi.spyOn(console, "error").mockImplementation(() => {})
       vi.spyOn(process, "exit").mockImplementation(() => {

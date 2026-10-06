@@ -168,6 +168,29 @@ async function readListedFile(file: ListedMediaFile): Promise<Buffer> {
   }
 }
 
+const DROP_TYPES = [
+  "seadrop_v1_erc721",
+  "seadrop_v2_erc1155_self_mint",
+] as const satisfies readonly DropDeployRequest["drop_type"][]
+const TOKEN_TYPES = [
+  "erc721_clone",
+  "erc721_standard",
+  "erc1155_clone",
+] as const satisfies readonly DropDeployRequest["token_type"][]
+
+function parseChoice<T extends string>(
+  value: string,
+  flag: string,
+  choices: readonly T[],
+): T {
+  if (!choices.includes(value as T)) {
+    throw new Error(
+      `Invalid value for ${flag}: "${value}". Expected one of: ${choices.join(", ")}.`,
+    )
+  }
+  return value as T
+}
+
 // Validated before any request, so a bad flag never starts a workflow or a
 // poll.
 function parseWaitOptions(options: { interval: string; waitTimeout: string }): {
@@ -473,8 +496,12 @@ export function dropsCommand(
           chain,
           contract_name: options.name,
           contract_symbol: options.symbol,
-          drop_type: options.dropType,
-          token_type: options.tokenType,
+          drop_type: parseChoice(options.dropType, "--drop-type", DROP_TYPES),
+          token_type: parseChoice(
+            options.tokenType,
+            "--token-type",
+            TOKEN_TYPES,
+          ),
           sender: options.sender,
         }
         if (!options.send) {

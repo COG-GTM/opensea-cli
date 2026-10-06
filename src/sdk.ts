@@ -606,7 +606,13 @@ export class DropsAPI {
         `Wallet ${address} is not the deploy sender ${sender}. The deploy was built for ${sender}; send it from that wallet, or request a new deploy with the wallet's address as sender.`,
       )
     }
-    return sendDropTransaction(evmWallet, tx, callbacks)
+    const { to } = tx
+    if (to === null) {
+      throw new Error(
+        "This deploy is a contract-creation transaction with no `to` address, which the wallet adapters cannot send yet. Run without --send and broadcast it with no `to` from your own wallet, or deploy with token_type erc721_clone.",
+      )
+    }
+    return sendDropTransaction(evmWallet, { ...tx, to }, callbacks)
   }
 
   /**

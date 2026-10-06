@@ -1,5 +1,18 @@
 # @opensea/cli
 
+## 2.11.2
+
+### Patch Changes
+
+- e83546e: Docs: the README search examples use `opensea search <query> --types collection` and `client.search.query(...)`, the syntax the CLI and SDK accept.
+- 6b30bd0: `opensea drops deploy` validates `--drop-type` and `--token-type` against the values the API accepts before sending a request, and `--send` refuses a contract-creation deploy (`erc721_standard`, which has no `to` address) with a clear message instead of sending it.
+- Updated dependencies [e83546e]
+- Updated dependencies [e83546e]
+- Updated dependencies [86b3bcd]
+- Updated dependencies [6b30bd0]
+  - @opensea/api-types@0.16.0
+  - @opensea/sdk@12.11.3
+
 ## 2.11.1
 
 ### Patch Changes

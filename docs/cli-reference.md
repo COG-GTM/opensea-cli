@@ -243,7 +243,9 @@ opensea drops deploy-receipt <chain> <tx-hash> [--wait] [--interval <seconds>] [
 `deploy` prints a ready-to-sign deploy transaction. `--chain` is required and
 never defaults to `ethereum`. With `--send` it signs and sends the transaction
 with the configured EVM wallet, which must be the `--sender` address, and
-prints the hash and chain. Pass both to `deploy-receipt` next.
+prints the hash and chain. Pass both to `deploy-receipt` next. `--send` cannot
+send an `erc721_standard` deploy, a contract-creation transaction with a null
+`to`; print it without `--send` and broadcast it from your own wallet.
 
 `deploy-receipt --wait` polls every `--interval` seconds (default 5) until the
 receipt has a `collection_slug` or its status is `failed`, for at most
