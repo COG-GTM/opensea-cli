@@ -3,7 +3,7 @@ import { PrivateKeyAdapter } from "@opensea/wallet-adapters"
 
 export const DEFAULT_TOKEN_TTL_SECONDS = 3600
 const SIWE_STATEMENT =
-  "Click to sign in and accept the OpenSea Terms of Service (https://opensea.io/tos) and Privacy Policy (https://opensea.io/privacy)."
+  "Click to sign in and accept the Platform Terms of Service (https://opensea.io/tos) and Privacy Policy (https://opensea.io/privacy)."
 
 /**
  * Supported API origins for SIWE login. The signed SIWE message binds to

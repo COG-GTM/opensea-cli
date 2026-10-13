@@ -1,5 +1,15 @@
 # @opensea/cli
 
+## 2.11.3
+
+### Patch Changes
+
+- 8adc30e: Sign-in with Ethereum messages now accept the "Platform Terms of Service" instead of the "OpenSea Terms of Service". The linked URLs are unchanged.
+- Updated dependencies [8adc30e]
+- Updated dependencies [8daac26]
+  - @opensea/sdk@12.11.4
+  - @opensea/api-types@0.16.1
+
 ## 2.11.2
 
 ### Patch Changes

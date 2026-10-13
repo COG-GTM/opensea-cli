@@ -178,7 +178,7 @@ export function authCommand(
     .option(
       "--statement <statement>",
       "Override the SIWX statement",
-      "Click to sign in and accept the OpenSea Terms of Service (https://opensea.io/tos) and Privacy Policy (https://opensea.io/privacy).",
+      "Click to sign in and accept the Platform Terms of Service (https://opensea.io/tos) and Privacy Policy (https://opensea.io/privacy).",
     )
     .option(
       "--auth-base-url <url>",
