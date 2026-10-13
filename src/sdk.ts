@@ -78,6 +78,8 @@ import type {
   SearchAssetType,
   SearchResponse,
   SetCollectionPricingCurrencyResponse,
+  StandardizedNftFacetsResponse,
+  StandardizedNftListResponse,
   SwapExecuteRequest,
   SwapExecuteResponse,
   SwapQuoteResponse,
@@ -917,6 +919,35 @@ export class DropsAPI {
   }
 }
 
+/** Normalized-attribute filters shared by the collection group endpoints. */
+export interface NftGroupFacetFilters {
+  franchise?: string[]
+  grader?: string[]
+  grade?: string[]
+  subject?: string[]
+  year?: string[]
+  set?: string[]
+  language?: string[]
+  edition?: string[]
+  productType?: string[]
+}
+
+function groupFacetFilterParams(
+  filters?: NftGroupFacetFilters,
+): Record<string, string[] | undefined> {
+  return {
+    franchise: filters?.franchise,
+    grader: filters?.grader,
+    grade: filters?.grade,
+    subject: filters?.subject,
+    year: filters?.year,
+    set: filters?.set,
+    language: filters?.language,
+    edition: filters?.edition,
+    product_type: filters?.productType,
+  }
+}
+
 class NFTsAPI {
   constructor(private client: OpenSeaClient) {}
 
@@ -968,6 +999,58 @@ class NFTsAPI {
       next: options?.next,
       // Param keys go out verbatim, so spell the wire name here.
       include_auto_hidden: options?.includeAutoHidden,
+    })
+  }
+
+  /**
+   * Search NFTs across every collection in a group, such as `trading_cards`,
+   * by normalized attributes. Facet filters are sent as repeated parameters
+   * and match any of their values; separate filters are AND-combined.
+   */
+  async listByGroup(
+    group: string,
+    options?: NftGroupFacetFilters & {
+      collectionSlugs?: string[]
+      query?: string
+      isListed?: boolean
+      minEstimatedValueUsd?: number
+      maxEstimatedValueUsd?: number
+      sortBy?: string
+      sortDirection?: "asc" | "desc"
+      limit?: number
+      next?: string
+    },
+  ): Promise<StandardizedNftListResponse> {
+    return this.client.get(`/api/v2/nfts/group/${group}`, {
+      collection_slugs: options?.collectionSlugs,
+      query: options?.query,
+      is_listed: options?.isListed,
+      min_estimated_value_usd: options?.minEstimatedValueUsd,
+      max_estimated_value_usd: options?.maxEstimatedValueUsd,
+      sort_by: options?.sortBy,
+      sort_direction: options?.sortDirection,
+      limit: options?.limit,
+      next: options?.next,
+      ...groupFacetFilterParams(options),
+    })
+  }
+
+  /**
+   * Get each normalized attribute's values in a collection group with the
+   * number of matching NFTs. Each facet is narrowed by the other types'
+   * filters, so it keeps listing all of its own values.
+   */
+  async groupFacets(
+    group: string,
+    options?: NftGroupFacetFilters & {
+      facetTypes?: string[]
+      collectionSlugs?: string[]
+    },
+  ): Promise<StandardizedNftFacetsResponse> {
+    return this.client.get(`/api/v2/nfts/group/${group}/facets`, {
+      facet_types: options?.facetTypes,
+      collection_slugs: options?.collectionSlugs,
+      ...groupFacetFilterParams(options),
     })
   }
 

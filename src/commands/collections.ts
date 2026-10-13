@@ -8,6 +8,7 @@ import {
   addChainOption,
   addPaginationOptions,
   addSortDirectionOption,
+  parseBooleanOption,
   parseIntOption,
   readJsonBodyOption,
 } from "../parse.js"
@@ -35,13 +36,6 @@ const PAGE_MEDIA_PLACEMENTS = [
   "overview_background",
   "team",
 ]
-
-function parseBooleanOption(value: string, flag: string): boolean {
-  if (value !== "true" && value !== "false") {
-    throw new Error(`${flag} must be 'true' or 'false'`)
-  }
-  return value === "true"
-}
 
 export function collectionsCommand(
   getClient: () => OpenSeaClient,

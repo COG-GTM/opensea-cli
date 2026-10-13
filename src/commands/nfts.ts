@@ -4,7 +4,11 @@ import type { OutputFormat } from "../output.js"
 import { formatOutput, outputGet } from "../output.js"
 import {
   addPaginationOptions,
+  addSortDirectionOption,
   addTraitsOption,
+  collectOption,
+  parseBooleanOption,
+  parseFloatOption,
   parseIntOption,
   parseTraitsOption,
   readJsonBodyOption,
@@ -15,6 +19,44 @@ import type {
   NftBatchResponse,
   ValidateMetadataResponse,
 } from "../types/index.js"
+
+/** [CLI flag, Commander option key, wire parameter] per normalized attribute. */
+const GROUP_FACET_FILTERS = [
+  ["franchise", "franchise", "franchise"],
+  ["grader", "grader", "grader"],
+  ["grade", "grade", "grade"],
+  ["subject", "subject", "subject"],
+  ["year", "year", "year"],
+  ["set", "set", "set"],
+  ["language", "language", "language"],
+  ["edition", "edition", "edition"],
+  ["product-type", "productType", "product_type"],
+] as const
+
+type GroupFacetFilterOptions = Partial<
+  Record<(typeof GROUP_FACET_FILTERS)[number][1], string[]>
+>
+
+function addGroupFacetFilterOptions(cmd: Command): Command {
+  for (const [flag, , wire] of GROUP_FACET_FILTERS) {
+    cmd.option(
+      `--${flag} <value>`,
+      `Only NFTs whose normalized ${wire.replace("_", " ")} is this value (repeatable, matches any)`,
+      collectOption,
+    )
+  }
+  return cmd
+}
+
+function groupFacetFilterParams(
+  options: GroupFacetFilterOptions,
+): Record<string, string[] | undefined> {
+  const params: Record<string, string[] | undefined> = {}
+  for (const [, key, wire] of GROUP_FACET_FILTERS) {
+    params[wire] = options[key]
+  }
+  return params
+}
 
 export function nftsCommand(
   getClient: () => OpenSeaClient,
@@ -119,6 +161,122 @@ export function nftsCommand(
         )
       },
     )
+
+  addGroupFacetFilterOptions(
+    addSortDirectionOption(
+      addPaginationOptions(
+        cmd
+          .command("list-by-group")
+          .description(
+            "Search NFTs across a collection group by normalized attributes",
+          )
+          .argument("<group>", "Collection group (e.g. trading_cards)"),
+        "Number of results (max 100)",
+      ),
+    )
+      .option(
+        "--collection-slug <slug>",
+        "Restrict to this collection in the group (repeatable, max 10)",
+        collectOption,
+      )
+      .option("--query <text>", "Full-text match on NFT name")
+      .option("--is-listed <bool>", "Only listed (true) or unlisted (false)")
+      .option(
+        "--min-estimated-value-usd <usd>",
+        "Minimum estimated value in USD, inclusive",
+      )
+      .option(
+        "--max-estimated-value-usd <usd>",
+        "Maximum estimated value in USD, inclusive",
+      )
+      .option(
+        "--sort-by <field>",
+        "Sort field (price, top_offer, last_sale, last_sale_date, created_date, received_date, listing_created_date, best_deal, estimated_value)",
+      ),
+  ).action(
+    async (
+      group: string,
+      options: GroupFacetFilterOptions & {
+        limit: string
+        next?: string
+        collectionSlug?: string[]
+        query?: string
+        isListed?: string
+        minEstimatedValueUsd?: string
+        maxEstimatedValueUsd?: string
+        sortBy?: string
+        sortDirection?: string
+      },
+    ) => {
+      const client = getClient()
+      await outputGet(client, getFormat(), `/api/v2/nfts/group/${group}`, {
+        collection_slugs: options.collectionSlug,
+        query: options.query,
+        is_listed:
+          options.isListed === undefined
+            ? undefined
+            : parseBooleanOption(options.isListed, "--is-listed"),
+        min_estimated_value_usd:
+          options.minEstimatedValueUsd === undefined
+            ? undefined
+            : parseFloatOption(
+                options.minEstimatedValueUsd,
+                "--min-estimated-value-usd",
+              ),
+        max_estimated_value_usd:
+          options.maxEstimatedValueUsd === undefined
+            ? undefined
+            : parseFloatOption(
+                options.maxEstimatedValueUsd,
+                "--max-estimated-value-usd",
+              ),
+        sort_by: options.sortBy,
+        sort_direction: options.sortDirection,
+        limit: parseIntOption(options.limit, "--limit"),
+        next: options.next,
+        ...groupFacetFilterParams(options),
+      })
+    },
+  )
+
+  addGroupFacetFilterOptions(
+    cmd
+      .command("group-facets")
+      .description(
+        "Get normalized attribute values and NFT counts for a collection group",
+      )
+      .argument("<group>", "Collection group (e.g. trading_cards)")
+      .option(
+        "--facet-type <type>",
+        "Only return this facet type, e.g. grader (repeatable)",
+        collectOption,
+      )
+      .option(
+        "--collection-slug <slug>",
+        "Restrict counts to this collection in the group (repeatable, max 10)",
+        collectOption,
+      ),
+  ).action(
+    async (
+      group: string,
+      options: GroupFacetFilterOptions & {
+        facetType?: string[]
+        collectionSlug?: string[]
+      },
+    ) => {
+      const client = getClient()
+      await outputGet(
+        client,
+        getFormat(),
+        `/api/v2/nfts/group/${group}/facets`,
+        {
+          facet_types: options.facetType,
+          collection_slugs: options.collectionSlug,
+          ...groupFacetFilterParams(options),
+        },
+      )
+    },
+  )
 
   cmd
     .command("refresh")

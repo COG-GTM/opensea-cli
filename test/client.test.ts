@@ -67,6 +67,21 @@ describe("OpenSeaClient", () => {
       expect(url.searchParams.has("missing")).toBe(false)
     })
 
+    it("repeats array query params, one per value", async () => {
+      mockFetchResponse({})
+
+      await client.get("/api/v2/test", {
+        grader: ["PSA", "CGC"],
+        empty: [],
+        mixed: ["a", null, undefined, "b"],
+      })
+
+      const url = new URL(vi.mocked(fetch).mock.calls[0][0] as string)
+      expect(url.searchParams.getAll("grader")).toEqual(["PSA", "CGC"])
+      expect(url.searchParams.has("empty")).toBe(false)
+      expect(url.searchParams.getAll("mixed")).toEqual(["a", "b"])
+    })
+
     it("throws OpenSeaAPIError on non-ok response", async () => {
       mockFetchTextResponse("Not Found", 404)
 

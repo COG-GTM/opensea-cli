@@ -431,6 +431,48 @@ describe("OpenSeaCLI", () => {
       )
     })
 
+    it("listByGroup sends wire names and repeated filters", async () => {
+      mockGet.mockResolvedValue({ nfts: [] })
+      await sdk.nfts.listByGroup("trading_cards", {
+        grader: ["PSA", "CGC"],
+        productType: ["card"],
+        collectionSlugs: ["a"],
+        isListed: true,
+        minEstimatedValueUsd: 5,
+        sortBy: "price",
+        sortDirection: "asc",
+        limit: 10,
+      })
+      expect(mockGet).toHaveBeenCalledWith(
+        "/api/v2/nfts/group/trading_cards",
+        expect.objectContaining({
+          grader: ["PSA", "CGC"],
+          product_type: ["card"],
+          collection_slugs: ["a"],
+          is_listed: true,
+          min_estimated_value_usd: 5,
+          sort_by: "price",
+          sort_direction: "asc",
+          limit: 10,
+        }),
+      )
+    })
+
+    it("groupFacets calls the facets endpoint", async () => {
+      mockGet.mockResolvedValue({ facets: [] })
+      await sdk.nfts.groupFacets("trading_cards", {
+        facetTypes: ["grader"],
+        franchise: ["Pokemon"],
+      })
+      expect(mockGet).toHaveBeenCalledWith(
+        "/api/v2/nfts/group/trading_cards/facets",
+        expect.objectContaining({
+          facet_types: ["grader"],
+          franchise: ["Pokemon"],
+        }),
+      )
+    })
+
     it("refresh calls correct endpoint with POST", async () => {
       mockPost.mockResolvedValue(undefined)
       await sdk.nfts.refresh("ethereum", "0xabc", "1")

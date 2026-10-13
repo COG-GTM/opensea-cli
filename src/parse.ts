@@ -36,6 +36,18 @@ export function parseIntOption(value: string, name: string): number {
   return parsed
 }
 
+export function parseBooleanOption(value: string, flag: string): boolean {
+  if (value !== "true" && value !== "false") {
+    throw new Error(`${flag} must be 'true' or 'false'`)
+  }
+  return value === "true"
+}
+
+/** Commander argParser for a repeatable option: `--x a --x b` → `["a", "b"]`. */
+export function collectOption(value: string, previous?: string[]): string[] {
+  return [...(previous ?? []), value]
+}
+
 export function parseFloatOption(value: string, name: string): number {
   const parsed = Number(value)
   if (

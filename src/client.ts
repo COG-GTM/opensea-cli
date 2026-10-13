@@ -74,7 +74,15 @@ function parseRetryAfter(header: string | null): number | undefined {
 function appendParams(url: URL, params?: Record<string, unknown>): void {
   if (!params) return
   for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null) {
+    if (Array.isArray(value)) {
+      // Repeated, not comma-joined: `?grader=PSA&grader=CGC`. Endpoints that
+      // want one comma-separated value get a joined string from the caller.
+      for (const item of value) {
+        if (item !== undefined && item !== null) {
+          url.searchParams.append(key, String(item))
+        }
+      }
+    } else if (value !== undefined && value !== null) {
       url.searchParams.set(key, String(value))
     }
   }

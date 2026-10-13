@@ -57,6 +57,17 @@ const { nfts, next } = await client.nfts.listByAccount("ethereum", "0x123...", {
   limit: 10,
 })
 
+const { nfts, next } = await client.nfts.listByGroup("trading_cards", {
+  franchise: ["Pokemon"],
+  grader: ["PSA", "CGC"],
+  isListed: true,
+  limit: 10,
+})
+
+const { facets } = await client.nfts.groupFacets("trading_cards", {
+  facetTypes: ["grader"],
+})
+
 await client.nfts.refresh("ethereum", "0x123...", "1")
 
 const contract = await client.nfts.getContract("ethereum", "0x123...")

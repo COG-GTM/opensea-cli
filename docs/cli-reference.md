@@ -175,11 +175,20 @@ opensea nfts get <chain> <contract> <token-id>
 opensea nfts list-by-collection <slug> [--limit <n>] [--next <cursor>]
 opensea nfts list-by-contract <chain> <contract> [--limit <n>] [--next <cursor>]
 opensea nfts list-by-account <chain> <address> [--limit <n>] [--next <cursor>] [--include-auto-hidden]
+opensea nfts list-by-group <group> [--franchise <v>] [--grader <v>] [--grade <v>] [--subject <v>] [--year <v>] [--set <v>] [--language <v>] [--edition <v>] [--product-type <v>] [--collection-slug <slug>] [--query <text>] [--is-listed <true|false>] [--min-estimated-value-usd <usd>] [--max-estimated-value-usd <usd>] [--sort-by <field>] [--sort-direction <dir>] [--limit <n>] [--next <cursor>]
+opensea nfts group-facets <group> [--facet-type <type>] [--collection-slug <slug>] [attribute filters]
 opensea nfts refresh <chain> <contract> <token-id>
 opensea nfts contract <chain> <address>
 ```
 
 `--include-auto-hidden` also returns NFTs hidden automatically because a third party minted or sent them to the account. NFTs the holder hid themselves stay hidden, and NFTs removed for policy violations are not returned.
+
+`list-by-group` searches every collection in a group, such as `trading_cards`, by normalized attributes. The attribute flags, `--collection-slug` and `--facet-type` are repeatable: values of one flag match any of them, and different flags are AND-combined. Use `group-facets` to discover the values and their counts.
+
+```bash
+opensea nfts group-facets trading_cards --facet-type grader --franchise Pokemon
+opensea nfts list-by-group trading_cards --franchise Pokemon --grader PSA --grader CGC --grade 10 --is-listed true --sort-by price --sort-direction asc
+```
 
 ## Listings
 

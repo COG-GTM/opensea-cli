@@ -114,6 +114,92 @@ describe("nftsCommand", () => {
     expect(params.limit).toBe(20)
   })
 
+  it("list-by-group collects repeated flags into arrays", async () => {
+    ctx.mockClient.get.mockResolvedValue({ nfts: [] })
+
+    const cmd = nftsCommand(ctx.getClient, ctx.getFormat)
+    await cmd.parseAsync(
+      [
+        "list-by-group",
+        "trading_cards",
+        "--grader",
+        "PSA",
+        "--grader",
+        "CGC",
+        "--product-type",
+        "card",
+        "--collection-slug",
+        "a",
+        "--is-listed",
+        "false",
+        "--min-estimated-value-usd",
+        "12.5",
+        "--sort-by",
+        "price",
+        "--sort-direction",
+        "asc",
+      ],
+      { from: "user" },
+    )
+
+    expect(ctx.mockClient.get).toHaveBeenCalledWith(
+      "/api/v2/nfts/group/trading_cards",
+      expect.objectContaining({
+        grader: ["PSA", "CGC"],
+        product_type: ["card"],
+        collection_slugs: ["a"],
+        is_listed: false,
+        min_estimated_value_usd: 12.5,
+        sort_by: "price",
+        sort_direction: "asc",
+        limit: 20,
+      }),
+    )
+    const params = ctx.mockClient.get.mock.calls[0][1] as Record<
+      string,
+      unknown
+    >
+    expect(params.franchise).toBeUndefined()
+    expect(params.is_listed).toBe(false)
+  })
+
+  it("list-by-group rejects a non-boolean --is-listed", async () => {
+    const cmd = nftsCommand(ctx.getClient, ctx.getFormat)
+    await expect(
+      cmd.parseAsync(["list-by-group", "trading_cards", "--is-listed", "yes"], {
+        from: "user",
+      }),
+    ).rejects.toThrow("--is-listed must be 'true' or 'false'")
+    expect(ctx.mockClient.get).not.toHaveBeenCalled()
+  })
+
+  it("group-facets sends facet types and filters", async () => {
+    ctx.mockClient.get.mockResolvedValue({ facets: [] })
+
+    const cmd = nftsCommand(ctx.getClient, ctx.getFormat)
+    await cmd.parseAsync(
+      [
+        "group-facets",
+        "trading_cards",
+        "--facet-type",
+        "grader",
+        "--facet-type",
+        "grade",
+        "--franchise",
+        "Pokemon",
+      ],
+      { from: "user" },
+    )
+
+    expect(ctx.mockClient.get).toHaveBeenCalledWith(
+      "/api/v2/nfts/group/trading_cards/facets",
+      expect.objectContaining({
+        facet_types: ["grader", "grade"],
+        franchise: ["Pokemon"],
+      }),
+    )
+  })
+
   it("refresh subcommand calls post", async () => {
     ctx.mockClient.post.mockResolvedValue(undefined)
 
