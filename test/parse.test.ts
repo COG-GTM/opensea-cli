@@ -8,8 +8,36 @@ import {
   parseFloatOption,
   parseIntOption,
   parseTraitsOption,
+  pathSegment,
   readJsonBodyOption,
 } from "../src/parse.js"
+
+describe("pathSegment", () => {
+  it("leaves chains, addresses and hashes unchanged", () => {
+    expect(pathSegment("ethereum")).toBe("ethereum")
+    expect(pathSegment("0x0000000000000068f116a894984e2db1123eb395")).toBe(
+      "0x0000000000000068f116a894984e2db1123eb395",
+    )
+    expect(pathSegment("AuctionHouseBase58Address")).toBe(
+      "AuctionHouseBase58Address",
+    )
+  })
+
+  it("encodes slashes and query characters", () => {
+    expect(pathSegment("a/b")).toBe("a%2Fb")
+    expect(pathSegment("a?b#c")).toBe("a%3Fb%23c")
+  })
+
+  it("rejects dot segments", () => {
+    expect(() => pathSegment(".")).toThrow('Invalid path segment: "."')
+    expect(() => pathSegment("..")).toThrow('Invalid path segment: ".."')
+  })
+
+  it("allows a segment that only contains dots alongside other text", () => {
+    expect(pathSegment("...")).toBe("...")
+    expect(pathSegment("..a")).toBe("..a")
+  })
+})
 
 describe("parseIntOption", () => {
   it("parses valid integers", () => {

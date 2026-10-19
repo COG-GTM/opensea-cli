@@ -5,13 +5,21 @@ import { formatOutput, outputGet } from "../output.js"
 import {
   addPaginationOptions,
   parseIntOption,
+  pathSegment,
   readJsonBodyOption,
 } from "../parse.js"
 import type {
+  BuildOfferRequest,
+  BuildOfferResponse,
   CreateOfferActionsRequest,
   CreateOfferActionsResponse,
   CreateOfferFulfillmentActionsRequest,
   CreateOfferFulfillmentActionsResponse,
+  CriteriaOfferRequest,
+  FulfillListingResponse,
+  Offer,
+  OfferFulfillmentDataRequest,
+  SignedOrderRequest,
 } from "../types/index.js"
 
 export function offersCommand(
@@ -172,6 +180,89 @@ export function offersCommand(
       )
       const result = await client.post<CreateOfferFulfillmentActionsResponse>(
         "/api/v2/offers/fulfillment/actions",
+        request,
+      )
+      console.log(formatOutput(result, getFormat()))
+    })
+
+  cmd
+    .command("post")
+    .description("Submit a signed item offer order")
+    .argument("<chain>", "Chain the offer is on (e.g. ethereum, base)")
+    .option("--protocol <protocol>", "Order protocol", "seaport")
+    .requiredOption(
+      "--body <path>",
+      "Path to JSON file with the signed order (parameters, signature, protocol_address)",
+    )
+    .action(
+      async (chain: string, options: { protocol: string; body: string }) => {
+        const client = getClient()
+        const request = readJsonBodyOption<SignedOrderRequest>(
+          options.body,
+          "--body",
+        )
+        const result = await client.post<Offer>(
+          `/api/v2/orders/${pathSegment(chain)}/${pathSegment(options.protocol)}/offers`,
+          request,
+        )
+        console.log(formatOutput(result, getFormat()))
+      },
+    )
+
+  cmd
+    .command("build")
+    .description(
+      "Build the unsigned parameters for a collection or trait offer",
+    )
+    .requiredOption(
+      "--body <path>",
+      "Path to JSON file with the BuildOfferRequest body",
+    )
+    .action(async (options: { body: string }) => {
+      const client = getClient()
+      const request = readJsonBodyOption<BuildOfferRequest>(
+        options.body,
+        "--body",
+      )
+      const result = await client.post<BuildOfferResponse>(
+        "/api/v2/offers/build",
+        request,
+      )
+      console.log(formatOutput(result, getFormat()))
+    })
+
+  cmd
+    .command("post-criteria")
+    .description("Submit a signed collection or trait offer")
+    .requiredOption(
+      "--body <path>",
+      "Path to JSON file with the signed criteria offer (protocol_data, criteria, protocol_address)",
+    )
+    .action(async (options: { body: string }) => {
+      const client = getClient()
+      const request = readJsonBodyOption<CriteriaOfferRequest>(
+        options.body,
+        "--body",
+      )
+      const result = await client.post<Offer>("/api/v2/offers", request)
+      console.log(formatOutput(result, getFormat()))
+    })
+
+  cmd
+    .command("fulfillment-data")
+    .description("Get the transaction data needed to fulfill an offer")
+    .requiredOption(
+      "--body <path>",
+      "Path to JSON file with the offer fulfillment request body",
+    )
+    .action(async (options: { body: string }) => {
+      const client = getClient()
+      const request = readJsonBodyOption<OfferFulfillmentDataRequest>(
+        options.body,
+        "--body",
+      )
+      const result = await client.post<FulfillListingResponse>(
+        "/api/v2/offers/fulfillment_data",
         request,
       )
       console.log(formatOutput(result, getFormat()))

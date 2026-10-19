@@ -37,6 +37,17 @@ const { collections, next } = await client.collections.list({
 const stats = await client.collections.stats("mfers")
 
 const traits = await client.collections.traits("mfers")
+
+const { floors } = await client.collections.traitFloors("mfers")
+
+const { profiles } = await client.collections.pfpProfiles("mfers", {
+  limit: 20,
+})
+
+const { collections: pfpRanking } = await client.collections.topPfp({
+  limit: 10,
+  chain: "base",
+})
 ```
 
 ## NFTs
@@ -81,6 +92,15 @@ const { listings, next } = await client.listings.all("mfers", { limit: 10 })
 const { listings, next } = await client.listings.best("mfers", { limit: 10 })
 
 const listing = await client.listings.bestForNFT("mfers", "3490")
+
+// Submit an order you already signed; the body is sent unchanged.
+const posted = await client.listings.post("ethereum", "seaport", signedOrder)
+
+const fulfillment = await client.listings.fulfillmentData({
+  listing: { hash: "0x...", chain: "ethereum", protocol_address: "0x..." },
+  fulfiller: { address: "0x..." },
+  include_optional_creator_fees: false,
+})
 ```
 
 ## Offers
@@ -97,6 +117,19 @@ const { offers, next } = await client.offers.traits("mfers", {
   value: "blue",
   limit: 10,
 })
+
+const offer = await client.offers.post("ethereum", "seaport", signedOrder)
+
+const built = await client.offers.build(buildOfferRequest)
+const criteriaOffer = await client.offers.postCriteria(signedCriteriaOffer)
+
+const fulfillment = await client.offers.fulfillmentData(fulfillmentRequest)
+```
+
+## Orders
+
+```typescript
+const { order } = await client.orders.get("ethereum", "0x...", "0x...")
 ```
 
 ## Drops and cross-chain minting
@@ -258,6 +291,8 @@ const { tokens, next } = await client.tokens.top({
 })
 
 const tokenDetails = await client.tokens.get("base", "0x123...")
+
+const paymentToken = await client.tokens.paymentToken("base", "0x123...")
 
 const activity = await client.tokens.activityStats(
   "base",

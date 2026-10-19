@@ -159,4 +159,147 @@ describe("offersCommand", () => {
       body,
     )
   })
+
+  it("post submits the signed order unchanged to the chain and protocol offer endpoint", async () => {
+    const response = { order_hash: "0xhash", chain: "ethereum" }
+    ctx.mockClient.post.mockResolvedValue(response)
+    const body = {
+      parameters: { offerer: "0xbidder", salt: "2", counter: "0" },
+      signature: "0xsig",
+      protocol_address: "0x0000000000000068f116a894984e2db1123eb395",
+    }
+    const file = writeTempJson(body)
+
+    const cmd = offersCommand(ctx.getClient, ctx.getFormat)
+    try {
+      await cmd.parseAsync(
+        ["post", "ethereum", "--protocol", "seaport", "--body", file],
+        { from: "user" },
+      )
+    } finally {
+      rmSync(file, { force: true })
+    }
+
+    expect(ctx.mockClient.get).not.toHaveBeenCalled()
+    expect(ctx.mockClient.post).toHaveBeenCalledWith(
+      "/api/v2/orders/ethereum/seaport/offers",
+      body,
+    )
+    expect(ctx.consoleSpy).toHaveBeenCalledWith(
+      JSON.stringify(response, null, 2),
+    )
+  })
+
+  it("post encodes a chain containing a slash", async () => {
+    ctx.mockClient.post.mockResolvedValue({})
+    const file = writeTempJson({ signature: "0xsig" })
+
+    const cmd = offersCommand(ctx.getClient, ctx.getFormat)
+    try {
+      await cmd.parseAsync(["post", "ethereum/../../offers", "--body", file], {
+        from: "user",
+      })
+    } finally {
+      rmSync(file, { force: true })
+    }
+
+    expect(ctx.mockClient.post).toHaveBeenCalledWith(
+      "/api/v2/orders/ethereum%2F..%2F..%2Foffers/seaport/offers",
+      { signature: "0xsig" },
+    )
+  })
+
+  it("build posts the request body unchanged and prints the response", async () => {
+    const response = {
+      partialParameters: { consideration: [] },
+      criteria: { collection: { slug: "cool-cats" } },
+    }
+    ctx.mockClient.post.mockResolvedValue(response)
+    const body = {
+      offerer: "0xbidder",
+      quantity: 1,
+      criteria: { collection: { slug: "cool-cats" } },
+      protocol_address: "0x0000000000000068f116a894984e2db1123eb395",
+      offer_protection_enabled: true,
+    }
+    const file = writeTempJson(body)
+
+    const cmd = offersCommand(ctx.getClient, ctx.getFormat)
+    try {
+      await cmd.parseAsync(["build", "--body", file], { from: "user" })
+    } finally {
+      rmSync(file, { force: true })
+    }
+
+    expect(ctx.mockClient.get).not.toHaveBeenCalled()
+    expect(ctx.mockClient.post).toHaveBeenCalledWith(
+      "/api/v2/offers/build",
+      body,
+    )
+    expect(ctx.consoleSpy).toHaveBeenCalledWith(
+      JSON.stringify(response, null, 2),
+    )
+  })
+
+  it("post-criteria posts the signed criteria offer unchanged and prints the response", async () => {
+    const response = { order_hash: "0xcriteria", chain: "ethereum" }
+    ctx.mockClient.post.mockResolvedValue(response)
+    const body = {
+      protocol_data: { parameters: { offerer: "0xbidder" }, signature: "0xs" },
+      criteria: { collection: { slug: "cool-cats" } },
+      protocol_address: "0x0000000000000068f116a894984e2db1123eb395",
+    }
+    const file = writeTempJson(body)
+
+    const cmd = offersCommand(ctx.getClient, ctx.getFormat)
+    try {
+      await cmd.parseAsync(["post-criteria", "--body", file], {
+        from: "user",
+      })
+    } finally {
+      rmSync(file, { force: true })
+    }
+
+    expect(ctx.mockClient.get).not.toHaveBeenCalled()
+    expect(ctx.mockClient.post).toHaveBeenCalledWith("/api/v2/offers", body)
+    expect(ctx.consoleSpy).toHaveBeenCalledWith(
+      JSON.stringify(response, null, 2),
+    )
+  })
+
+  it("fulfillment-data posts the request body unchanged and prints the response", async () => {
+    const response = { protocol: "seaport1.6", fulfillment_data: {} }
+    ctx.mockClient.post.mockResolvedValue(response)
+    const body = {
+      offer: {
+        hash: "0xoffer",
+        chain: "ethereum",
+        protocol_address: "0x0000000000000068f116a894984e2db1123eb395",
+      },
+      fulfiller: { address: "0xseller" },
+      consideration: {
+        asset_contract_address: "0xnft",
+        token_id: "1",
+      },
+    }
+    const file = writeTempJson(body)
+
+    const cmd = offersCommand(ctx.getClient, ctx.getFormat)
+    try {
+      await cmd.parseAsync(["fulfillment-data", "--body", file], {
+        from: "user",
+      })
+    } finally {
+      rmSync(file, { force: true })
+    }
+
+    expect(ctx.mockClient.get).not.toHaveBeenCalled()
+    expect(ctx.mockClient.post).toHaveBeenCalledWith(
+      "/api/v2/offers/fulfillment_data",
+      body,
+    )
+    expect(ctx.consoleSpy).toHaveBeenCalledWith(
+      JSON.stringify(response, null, 2),
+    )
+  })
 })

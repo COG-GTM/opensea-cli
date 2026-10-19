@@ -92,4 +92,44 @@ describe("ordersCommand", () => {
       body,
     )
   })
+
+  it("get fetches the order by chain, protocol address and hash", async () => {
+    const response = { order: { order_hash: "0xhash" } }
+    ctx.mockClient.get.mockResolvedValue(response)
+
+    const cmd = ordersCommand(ctx.getClient, ctx.getFormat)
+    await cmd.parseAsync(["get", "ethereum", "0xproto", "0xhash"], {
+      from: "user",
+    })
+
+    expect(ctx.mockClient.post).not.toHaveBeenCalled()
+    expect(ctx.mockClient.get).toHaveBeenCalledWith(
+      "/api/v2/orders/chain/ethereum/protocol/0xproto/0xhash",
+    )
+    expect(ctx.consoleSpy).toHaveBeenCalledWith(
+      JSON.stringify(response, null, 2),
+    )
+  })
+
+  it("get encodes an order hash containing a slash", async () => {
+    ctx.mockClient.get.mockResolvedValue({})
+
+    const cmd = ordersCommand(ctx.getClient, ctx.getFormat)
+    await cmd.parseAsync(["get", "ethereum", "0xproto", "0xhash/cancel"], {
+      from: "user",
+    })
+
+    expect(ctx.mockClient.get).toHaveBeenCalledWith(
+      "/api/v2/orders/chain/ethereum/protocol/0xproto/0xhash%2Fcancel",
+    )
+  })
+
+  it("get rejects a dot-segment protocol address without sending a request", async () => {
+    const cmd = ordersCommand(ctx.getClient, ctx.getFormat)
+    await expect(
+      cmd.parseAsync(["get", "ethereum", "..", "0xhash"], { from: "user" }),
+    ).rejects.toThrow('Invalid path segment: ".."')
+
+    expect(ctx.mockClient.get).not.toHaveBeenCalled()
+  })
 })

@@ -94,6 +94,21 @@ describe("tokensCommand", () => {
     )
   })
 
+  it("payment-token fetches an encoded chain and address and prints it", async () => {
+    const token = { symbol: "WETH", decimals: 18 }
+    ctx.mockClient.get.mockResolvedValue(token)
+
+    const cmd = tokensCommand(ctx.getClient, ctx.getFormat)
+    await cmd.parseAsync(["payment-token", "base", "0xabc/x"], {
+      from: "user",
+    })
+
+    expect(ctx.mockClient.get).toHaveBeenCalledWith(
+      "/api/v2/chain/base/payment_token/0xabc%2Fx",
+    )
+    expect(ctx.consoleSpy).toHaveBeenCalledWith(JSON.stringify(token, null, 2))
+  })
+
   it("account-activity subcommand passes filters and pagination", async () => {
     ctx.mockClient.get.mockResolvedValue({ activities: [] })
 

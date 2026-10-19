@@ -46,6 +46,10 @@ export type CollectionResponse = Schemas["CollectionResponse"]
 export type CollectionDetailedResponse = Schemas["CollectionDetailedResponse"]
 export type CollectionPaginatedResponse = Schemas["CollectionPaginatedResponse"]
 export type CollectionStatsResponse = Schemas["CollectionStatsResponse"]
+export type CollectionPfpProfilesResponse =
+  Schemas["CollectionPfpProfilesResponse"]
+export type TopPfpCollectionsResponse = Schemas["TopPfpCollectionsResponse"]
+export type TraitFloorsResponse = Schemas["TraitFloorsResponse"]
 export type NftResponse = Schemas["NftResponse"]
 export type NftListResponse = Schemas["NftListResponse"]
 export type StandardizedNft = Schemas["StandardizedNft"]
@@ -102,6 +106,12 @@ export type CreateOfferFulfillmentActionsRequest =
   Schemas["FullfillmentDataRequest"]
 export type CreateOfferFulfillmentActionsResponse =
   Schemas["FulfillmentActionsResponse"]
+export type SignedOrderRequest = Schemas["SeaportRequest"]
+export type CriteriaOfferRequest = Schemas["OfferWithCriteriaRequest"]
+export type BuildOfferRequest = Schemas["BuildOfferRequest"]
+export type BuildOfferResponse = Schemas["BuildOfferResponse"]
+export type ListingFulfillmentDataRequest = Schemas["FullfillListingRequest"]
+export type OfferFulfillmentDataRequest = Schemas["FullfillmentDataRequest"]
 export type TransferRequest = Schemas["TransferRequest"]
 export type TransferResponse = Schemas["TransferResponse"]
 export type CollectionOfferAggregatesPaginatedResponse =

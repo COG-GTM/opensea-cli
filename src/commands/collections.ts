@@ -101,6 +101,57 @@ export function collectionsCommand(
       await outputGet(client, getFormat(), `/api/v2/traits/${slug}`)
     })
 
+  cmd
+    .command("trait-floors")
+    .description(
+      "Get the floor price of each text trait value with an active listing",
+    )
+    .argument("<slug>", "Collection slug")
+    .action(async (slug: string) => {
+      const client = getClient()
+      await outputGet(
+        client,
+        getFormat(),
+        `/api/v2/traits/${encodeURIComponent(slug)}/floors`,
+      )
+    })
+
+  addPaginationOptions(
+    cmd
+      .command("pfp-profiles")
+      .description(
+        "Get profiles wearing a verified NFT from the collection as their profile picture",
+      )
+      .argument("<slug>", "Collection slug"),
+    "Number of results (max 100)",
+  ).action(async (slug: string, options: { limit: string; next?: string }) => {
+    const client = getClient()
+    await outputGet(
+      client,
+      getFormat(),
+      `/api/v2/collections/${encodeURIComponent(slug)}/pfp-profiles`,
+      {
+        limit: parseIntOption(options.limit, "--limit"),
+        cursor: options.next,
+      },
+    )
+  })
+
+  addChainOption(
+    cmd
+      .command("top-pfp")
+      .description(
+        "Get collections ranked by how many accounts wear one of their verified NFTs as a profile picture",
+      )
+      .option("--limit <limit>", "Number of collections (1-50)", "20"),
+  ).action(async (options: { limit: string; chain?: string }) => {
+    const client = getClient()
+    await outputGet(client, getFormat(), "/api/v2/pfp/top-collections", {
+      limit: parseIntOption(options.limit, "--limit"),
+      chain: options.chain as Chain | undefined,
+    })
+  })
+
   addPaginationOptions(
     cmd
       .command("trending")

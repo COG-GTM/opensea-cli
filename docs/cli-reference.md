@@ -114,7 +114,16 @@ opensea collections get <slug>
 opensea collections list [--chain <chain>] [--order-by <field>] [--creator <username>] [--include-hidden] [--limit <n>] [--next <cursor>]
 opensea collections stats <slug>
 opensea collections traits <slug>
+opensea collections trait-floors <slug>
+opensea collections pfp-profiles <slug> [--limit <n>] [--next <cursor>]
+opensea collections top-pfp [--limit <n>] [--chain <chain>]
 ```
+
+`trait-floors` prints the floor price of each text trait value that has at
+least one active listing. `pfp-profiles` lists the profiles wearing a verified
+NFT from the collection as their profile picture. `top-pfp` ranks collections
+by that wearer count; `--limit` takes 1 to 50 (default 20), and leaving out
+`--chain` ranks across every chain.
 
 `--order-by` values: `created_date`, `one_day_change`, `seven_day_volume`, `seven_day_change`, `num_owners`, `market_cap`
 
@@ -198,6 +207,8 @@ opensea listings best <collection> [--limit <n>] [--next <cursor>]
 opensea listings best-for-nft <collection> <token-id>
 opensea listings actions --body <request.json>
 opensea listings fulfillment-actions --body <request.json>
+opensea listings post <chain> --body <signed-order.json> [--protocol seaport]
+opensea listings fulfillment-data --body <request.json>
 ```
 
 ## Offers
@@ -209,11 +220,18 @@ opensea offers best-for-nft <collection> <token-id>
 opensea offers traits <collection> --type <type> --value <value> [--limit <n>] [--next <cursor>]
 opensea offers actions --body <request.json>
 opensea offers fulfillment-actions --body <request.json>
+opensea offers post <chain> --body <signed-order.json> [--protocol seaport]
+opensea offers build --body <request.json>
+opensea offers post-criteria --body <signed-criteria-offer.json>
+opensea offers fulfillment-data --body <request.json>
 ```
+
+`listings post`, `offers post` and `offers post-criteria` submit an order you have already signed. The CLI does not build or sign orders: it sends the JSON file as the request body and prints the API response. `offers build` returns the unsigned parameters for a collection or trait offer; sign them yourself, then submit the result with `offers post-criteria`.
 
 ## Orders
 
 ```bash
+opensea orders get <chain> <protocol_address> <order_hash>
 opensea orders cancel <chain> <protocol_address> <order_hash> [--body <request.json>]
 opensea orders cancel-actions <chain> <protocol_address> <order_identifier> --body <request.json>
 ```
@@ -365,11 +383,20 @@ opensea search <query> [--types <types>] [--chains <chains>] [--limit <n>]
 opensea tokens trending [--chains <chains>] [--limit <n>] [--next <cursor>]
 opensea tokens top [--chains <chains>] [--limit <n>] [--next <cursor>]
 opensea tokens get <chain> <address>
+opensea tokens payment-token <chain> <address>
 opensea tokens activity-stats <chain> <address> [--windows <windows>]
 ```
 
 `--windows` accepts a comma-separated list containing `5m`, `1h`, `4h`, and
 `24h`. If omitted, the API returns every available materialized window.
+
+## Profile
+
+```bash
+opensea profile shelves <address>
+```
+
+`shelves` lists the profile shelves of any wallet and needs an API key alone.
 
 ## Swaps
 

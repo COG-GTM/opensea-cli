@@ -7,6 +7,7 @@ import {
   addTraitsOption,
   parseIntOption,
   parseTraitsOption,
+  pathSegment,
   readJsonBodyOption,
 } from "../parse.js"
 import type {
@@ -15,6 +16,10 @@ import type {
   CreateListingFulfillmentActionsRequest,
   CreateListingFulfillmentActionsResponse,
   CrossChainFulfillmentResponse,
+  FulfillListingResponse,
+  Listing,
+  ListingFulfillmentDataRequest,
+  SignedOrderRequest,
 } from "../types/index.js"
 
 export function listingsCommand(
@@ -243,6 +248,50 @@ export function listingsCommand(
         )
       const result = await client.post<CreateListingFulfillmentActionsResponse>(
         "/api/v2/listings/fulfillment/actions",
+        request,
+      )
+      console.log(formatOutput(result, getFormat()))
+    })
+
+  cmd
+    .command("post")
+    .description("Submit a signed listing order")
+    .argument("<chain>", "Chain the listing is on (e.g. ethereum, base)")
+    .option("--protocol <protocol>", "Order protocol", "seaport")
+    .requiredOption(
+      "--body <path>",
+      "Path to JSON file with the signed order (parameters, signature, protocol_address)",
+    )
+    .action(
+      async (chain: string, options: { protocol: string; body: string }) => {
+        const client = getClient()
+        const request = readJsonBodyOption<SignedOrderRequest>(
+          options.body,
+          "--body",
+        )
+        const result = await client.post<Listing>(
+          `/api/v2/orders/${pathSegment(chain)}/${pathSegment(options.protocol)}/listings`,
+          request,
+        )
+        console.log(formatOutput(result, getFormat()))
+      },
+    )
+
+  cmd
+    .command("fulfillment-data")
+    .description("Get the transaction data needed to fulfill a listing")
+    .requiredOption(
+      "--body <path>",
+      "Path to JSON file with the listing fulfillment request body",
+    )
+    .action(async (options: { body: string }) => {
+      const client = getClient()
+      const request = readJsonBodyOption<ListingFulfillmentDataRequest>(
+        options.body,
+        "--body",
+      )
+      const result = await client.post<FulfillListingResponse>(
+        "/api/v2/listings/fulfillment_data",
         request,
       )
       console.log(formatOutput(result, getFormat()))

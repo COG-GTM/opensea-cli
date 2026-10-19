@@ -127,6 +127,64 @@ describe("collectionsCommand", () => {
     expect(ctx.mockClient.get).toHaveBeenCalledWith("/api/v2/traits/cool-cats")
   })
 
+  it("trait-floors reads the floors of an encoded slug and prints them", async () => {
+    const floors = { chain: "ethereum", floors: [] }
+    ctx.mockClient.get.mockResolvedValue(floors)
+
+    const cmd = collectionsCommand(ctx.getClient, ctx.getFormat)
+    await cmd.parseAsync(["trait-floors", "a/b"], { from: "user" })
+
+    expect(ctx.mockClient.get).toHaveBeenCalledWith(
+      "/api/v2/traits/a%2Fb/floors",
+    )
+    expect(ctx.consoleSpy).toHaveBeenCalledWith(JSON.stringify(floors, null, 2))
+  })
+
+  it("pfp-profiles sends --next as the cursor and prints the page", async () => {
+    const page = { profiles: [{ address: "0xabc" }], next: "page-3" }
+    ctx.mockClient.get.mockResolvedValue(page)
+
+    const cmd = collectionsCommand(ctx.getClient, ctx.getFormat)
+    await cmd.parseAsync(
+      ["pfp-profiles", "a/b", "--limit", "5", "--next", "page-2"],
+      { from: "user" },
+    )
+
+    expect(ctx.mockClient.get).toHaveBeenCalledWith(
+      "/api/v2/collections/a%2Fb/pfp-profiles",
+      { limit: 5, cursor: "page-2" },
+    )
+    expect(ctx.consoleSpy).toHaveBeenCalledWith(JSON.stringify(page, null, 2))
+  })
+
+  it("top-pfp sends the limit and chain", async () => {
+    const ranked = { collections: [{ rank: 1, pfp_wearer_count: 9 }] }
+    ctx.mockClient.get.mockResolvedValue(ranked)
+
+    const cmd = collectionsCommand(ctx.getClient, ctx.getFormat)
+    await cmd.parseAsync(["top-pfp", "--limit", "50", "--chain", "base"], {
+      from: "user",
+    })
+
+    expect(ctx.mockClient.get).toHaveBeenCalledWith(
+      "/api/v2/pfp/top-collections",
+      { limit: 50, chain: "base" },
+    )
+    expect(ctx.consoleSpy).toHaveBeenCalledWith(JSON.stringify(ranked, null, 2))
+  })
+
+  it("top-pfp sends the default limit, which the endpoint requires", async () => {
+    ctx.mockClient.get.mockResolvedValue({ collections: [] })
+
+    const cmd = collectionsCommand(ctx.getClient, ctx.getFormat)
+    await cmd.parseAsync(["top-pfp"], { from: "user" })
+
+    expect(ctx.mockClient.get).toHaveBeenCalledWith(
+      "/api/v2/pfp/top-collections",
+      { limit: 20, chain: undefined },
+    )
+  })
+
   it("outputs in table format when getFormat returns table", async () => {
     ctx.mockClient.get.mockResolvedValue({ name: "Test" })
     ctx.getFormat = () => "table"

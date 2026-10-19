@@ -1,7 +1,7 @@
 import { Command } from "commander"
 import type { OpenSeaClient } from "../client.js"
 import type { OutputFormat } from "../output.js"
-import { formatOutput } from "../output.js"
+import { formatOutput, outputGet } from "../output.js"
 import { readJsonBodyOption } from "../parse.js"
 import type {
   ClaimAccountUsernameRequest,
@@ -109,6 +109,17 @@ export function profileCommand(
         "/api/v2/profile/nft-pfp",
       )
       console.log(formatOutput(result, getFormat()))
+    })
+
+  cmd
+    .command("shelves")
+    .description("List a wallet's profile shelves")
+    .argument("<address>", "Wallet address to list shelves for")
+    .action(async (address: string) => {
+      const client = getClient()
+      await outputGet(client, getFormat(), "/api/v2/profile/shelves", {
+        address,
+      })
     })
 
   cmd

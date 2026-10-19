@@ -124,6 +124,37 @@ describe("OpenSeaCLI", () => {
       })
     })
 
+    it("traitFloors encodes the slug", async () => {
+      const floors = { chain: "ethereum", floors: [] }
+      mockGet.mockResolvedValue(floors)
+      await expect(sdk.collections.traitFloors("a/b")).resolves.toBe(floors)
+      expect(mockGet).toHaveBeenCalledWith("/api/v2/traits/a%2Fb/floors")
+    })
+
+    it("pfpProfiles maps next to cursor", async () => {
+      const page = { profiles: [], next: null }
+      mockGet.mockResolvedValue(page)
+      await expect(
+        sdk.collections.pfpProfiles("a/b", { limit: 5, next: "page-2" }),
+      ).resolves.toBe(page)
+      expect(mockGet).toHaveBeenCalledWith(
+        "/api/v2/collections/a%2Fb/pfp-profiles",
+        { limit: 5, cursor: "page-2" },
+      )
+    })
+
+    it("topPfp sends limit and chain", async () => {
+      const ranked = { collections: [] }
+      mockGet.mockResolvedValue(ranked)
+      await expect(
+        sdk.collections.topPfp({ limit: 10, chain: "base" }),
+      ).resolves.toBe(ranked)
+      expect(mockGet).toHaveBeenCalledWith("/api/v2/pfp/top-collections", {
+        limit: 10,
+        chain: "base",
+      })
+    })
+
     it("top calls correct endpoint with options", async () => {
       mockGet.mockResolvedValue({ collections: [] })
       await sdk.collections.top({
@@ -555,6 +586,44 @@ describe("OpenSeaCLI", () => {
         request,
       )
     })
+
+    it("post sends the signed order unchanged to the encoded listing endpoint", async () => {
+      const response = { order_hash: "0xhash" }
+      mockPost.mockResolvedValue(response)
+      const request = {
+        parameters: { offerer: "0xmaker" },
+        signature: "0xsig",
+        protocol_address: "0xproto",
+      } as unknown as Parameters<typeof sdk.listings.post>[2]
+
+      const result = await sdk.listings.post("base/x", "seaport", request)
+
+      expect(mockPost).toHaveBeenCalledWith(
+        "/api/v2/orders/base%2Fx/seaport/listings",
+        request,
+      )
+      expect(result).toBe(response)
+    })
+
+    it("fulfillmentData sends the request unchanged to the fulfillment data endpoint", async () => {
+      mockPost.mockResolvedValue({ fulfillment_data: {} })
+      const request = {
+        listing: {
+          hash: "0xlisting",
+          chain: "ethereum",
+          protocol_address: "0xproto",
+        },
+        fulfiller: { address: "0xbuyer" },
+        include_optional_creator_fees: false,
+      }
+
+      await sdk.listings.fulfillmentData(request)
+
+      expect(mockPost).toHaveBeenCalledWith(
+        "/api/v2/listings/fulfillment_data",
+        request,
+      )
+    })
   })
 
   describe("offers", () => {
@@ -637,9 +706,95 @@ describe("OpenSeaCLI", () => {
         request,
       )
     })
+
+    it("post sends the signed order unchanged to the encoded offer endpoint", async () => {
+      const response = { order_hash: "0xhash" }
+      mockPost.mockResolvedValue(response)
+      const request = {
+        parameters: { offerer: "0xbidder" },
+        signature: "0xsig",
+        protocol_address: "0xproto",
+      } as unknown as Parameters<typeof sdk.offers.post>[2]
+
+      const result = await sdk.offers.post("ethereum", "seaport/x", request)
+
+      expect(mockPost).toHaveBeenCalledWith(
+        "/api/v2/orders/ethereum/seaport%2Fx/offers",
+        request,
+      )
+      expect(result).toBe(response)
+    })
+
+    it("build sends the request unchanged to the build offer endpoint", async () => {
+      mockPost.mockResolvedValue({ partialParameters: {} })
+      const request = {
+        offerer: "0xbidder",
+        quantity: 1,
+        criteria: { collection: { slug: "cool-cats" } },
+        protocol_address: "0xproto",
+        offer_protection_enabled: true,
+      }
+
+      await sdk.offers.build(request)
+
+      expect(mockPost).toHaveBeenCalledWith("/api/v2/offers/build", request)
+    })
+
+    it("postCriteria sends the signed criteria offer unchanged to the offers endpoint", async () => {
+      mockPost.mockResolvedValue({ order_hash: "0xcriteria" })
+      const request = {
+        protocol_data: { parameters: { offerer: "0xbidder" }, signature: "0x" },
+        criteria: { collection: { slug: "cool-cats" } },
+        protocol_address: "0xproto",
+      } as unknown as Parameters<typeof sdk.offers.postCriteria>[0]
+
+      await sdk.offers.postCriteria(request)
+
+      expect(mockPost).toHaveBeenCalledWith("/api/v2/offers", request)
+    })
+
+    it("fulfillmentData sends the request unchanged to the fulfillment data endpoint", async () => {
+      mockPost.mockResolvedValue({ fulfillment_data: {} })
+      const request = {
+        offer: {
+          hash: "0xoffer",
+          chain: "ethereum",
+          protocol_address: "0xproto",
+        },
+        fulfiller: { address: "0xseller" },
+        consideration: { asset_contract_address: "0xnft", token_id: "1" },
+        include_optional_creator_fees: false,
+      }
+
+      await sdk.offers.fulfillmentData(request)
+
+      expect(mockPost).toHaveBeenCalledWith(
+        "/api/v2/offers/fulfillment_data",
+        request,
+      )
+    })
   })
 
   describe("orders", () => {
+    it("get fetches the order from the encoded order endpoint", async () => {
+      const response = { order: { order_hash: "0xhash" } }
+      mockGet.mockResolvedValue(response)
+
+      const result = await sdk.orders.get("ethereum", "0xproto", "0xhash/x")
+
+      expect(mockGet).toHaveBeenCalledWith(
+        "/api/v2/orders/chain/ethereum/protocol/0xproto/0xhash%2Fx",
+      )
+      expect(result).toBe(response)
+    })
+
+    it("get rejects a dot-segment order hash", async () => {
+      await expect(sdk.orders.get("ethereum", "0xproto", "..")).rejects.toThrow(
+        'Invalid path segment: ".."',
+      )
+      expect(mockGet).not.toHaveBeenCalled()
+    })
+
     it("cancelActions calls the order cancellation action endpoint", async () => {
       mockPost.mockResolvedValue({ steps: [] })
       const request = { address: "MakerBase58Address" }
@@ -821,6 +976,17 @@ describe("OpenSeaCLI", () => {
   })
 
   describe("tokens", () => {
+    it("paymentToken encodes the chain and address", async () => {
+      const token = { symbol: "USDC", decimals: 6 }
+      mockGet.mockResolvedValue(token)
+      await expect(sdk.tokens.paymentToken("base", "0xabc/x")).resolves.toBe(
+        token,
+      )
+      expect(mockGet).toHaveBeenCalledWith(
+        "/api/v2/chain/base/payment_token/0xabc%2Fx",
+      )
+    })
+
     it("trending calls correct endpoint", async () => {
       mockGet.mockResolvedValue({ tokens: [] })
       await sdk.tokens.trending({ limit: 10, chains: ["ethereum", "base"] })

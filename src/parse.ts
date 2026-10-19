@@ -28,6 +28,19 @@ export function readJsonBodyOption<T = unknown>(
   }
 }
 
+/**
+ * Encode one URL path segment. `.` and `..` are rejected because the URL
+ * parser collapses them (encoded or not) and would request another endpoint.
+ */
+export function pathSegment(value: string): string {
+  if (value === "." || value === "..") {
+    throw new Error(
+      `Invalid path segment: ${JSON.stringify(value)} would traverse to a different endpoint`,
+    )
+  }
+  return encodeURIComponent(value)
+}
+
 export function parseIntOption(value: string, name: string): number {
   const parsed = Number(value)
   if (!/^[+-]?\d+$/.test(value) || !Number.isSafeInteger(parsed)) {

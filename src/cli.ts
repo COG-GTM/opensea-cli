@@ -5,6 +5,7 @@ import {
 } from "./api-error.js"
 import { TokenRefreshError } from "./auth/refresh.js"
 import { OpenSeaAPIError } from "./client.js"
+import { stringifyJson } from "./output.js"
 import { createProgram } from "./program.js"
 
 const program = createProgram()
@@ -15,14 +16,13 @@ async function main() {
   } catch (error) {
     if (error instanceof OpenSeaAPIError) {
       const { exitCode, payload } = describeApiError(error)
-      console.error(JSON.stringify(payload, null, 2))
+      console.error(stringifyJson(payload, 2))
       process.exit(exitCode)
     }
     if (error instanceof TokenRefreshError) {
       console.error(
-        JSON.stringify(
+        stringifyJson(
           { error: error.name, status: error.status, message: error.message },
-          null,
           2,
         ),
       )
@@ -31,12 +31,11 @@ async function main() {
     const label =
       error instanceof TypeError ? "Network Error" : (error as Error).name
     console.error(
-      JSON.stringify(
+      stringifyJson(
         {
           error: label,
           message: (error as Error).message,
         },
-        null,
         2,
       ),
     )

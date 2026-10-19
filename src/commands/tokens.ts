@@ -79,6 +79,22 @@ export function tokensCommand(
     })
 
   cmd
+    .command("payment-token")
+    .description(
+      "Get a payment token's symbol, decimals and ETH and USD prices",
+    )
+    .argument("<chain>", "Blockchain chain")
+    .argument("<address>", "Payment token contract address")
+    .action(async (chain: string, address: string) => {
+      const client = getClient()
+      await outputGet(
+        client,
+        getFormat(),
+        `/api/v2/chain/${encodeURIComponent(chain)}/payment_token/${encodeURIComponent(address)}`,
+      )
+    })
+
+  cmd
     .command("batch")
     .description(
       "Get multiple tokens in one request by chain + contract address",

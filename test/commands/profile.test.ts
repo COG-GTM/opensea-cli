@@ -110,6 +110,21 @@ describe("profileCommand", () => {
     )
   })
 
+  it("shelves lists a wallet's shelves by address", async () => {
+    const shelves = [{ id: "s1", title: "Favorites" }]
+    ctx.mockClient.get.mockResolvedValue(shelves)
+
+    const cmd = profileCommand(ctx.getClient, ctx.getFormat)
+    await cmd.parseAsync(["shelves", "0xabc"], { from: "user" })
+
+    expect(ctx.mockClient.get).toHaveBeenCalledWith("/api/v2/profile/shelves", {
+      address: "0xabc",
+    })
+    expect(ctx.consoleSpy).toHaveBeenCalledWith(
+      JSON.stringify(shelves, null, 2),
+    )
+  })
+
   it("delete-shelf deletes a shelf by id", async () => {
     ctx.mockClient.delete.mockResolvedValue({ success: true })
 

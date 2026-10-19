@@ -1,8 +1,8 @@
 import { Command } from "commander"
 import type { OpenSeaClient } from "../client.js"
 import type { OutputFormat } from "../output.js"
-import { formatOutput } from "../output.js"
-import { readJsonBodyOption } from "../parse.js"
+import { formatOutput, outputGet } from "../output.js"
+import { pathSegment, readJsonBodyOption } from "../parse.js"
 import type {
   CancelRequest,
   CreateCancelOrderActionsRequest,
@@ -14,6 +14,23 @@ export function ordersCommand(
   getFormat: () => OutputFormat,
 ): Command {
   const cmd = new Command("orders").description("Manage OpenSea orders")
+
+  cmd
+    .command("get")
+    .description("Get a single order by hash")
+    .argument("<chain>", "Chain the order lives on (e.g. ethereum, base)")
+    .argument("<protocol_address>", "Seaport protocol contract address")
+    .argument("<order_hash>", "Order hash")
+    .action(
+      async (chain: string, protocolAddress: string, orderHash: string) => {
+        const client = getClient()
+        await outputGet(
+          client,
+          getFormat(),
+          `/api/v2/orders/chain/${pathSegment(chain)}/protocol/${pathSegment(protocolAddress)}/${pathSegment(orderHash)}`,
+        )
+      },
+    )
 
   cmd
     .command("cancel")

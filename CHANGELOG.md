@@ -1,5 +1,29 @@
 # @opensea/cli
 
+## 2.13.0
+
+### Minor Changes
+
+- 032316b: Add order commands for endpoints the CLI did not cover: `listings post`, `listings fulfillment-data`, `offers post`, `offers build`, `offers post-criteria`, `offers fulfillment-data` and `orders get`, with matching `OpenSeaCLI` methods (`listings.post`, `listings.fulfillmentData`, `offers.post`, `offers.build`, `offers.postCriteria`, `offers.fulfillmentData`, `orders.get`). The submit commands send a caller-signed order from a `--body` JSON file unchanged and print the API response; they do not build or sign orders. Chain, protocol, protocol address and order hash are URL-encoded, and `.` or `..` is rejected, so a path argument cannot retarget the request.
+- 77cf7e5: Add collection management and PFP endpoints. The SDK gains `api.collections.getCreatorFeeEnforcement(slug)`, `api.collections.getCollectionPfpProfiles(slug, args?)` and `api.collections.getTopPfpCollections(args)`, plus wallet-authenticated `api.walletAuth.getCollectionMetadata`, `createCollectionPageMediaUpload`, `setCollectionPricingCurrency`, `buildCreatorFeeEnforcementTransactions` and `refreshCollectionMetadata`. The CLI gains `opensea collections trait-floors`, `collections pfp-profiles`, `collections top-pfp`, `tokens payment-token` and `profile shelves`, with `collections.traitFloors`, `collections.pfpProfiles`, `collections.topPfp` and `tokens.paymentToken` on the programmatic client.
+
+### Patch Changes
+
+- Updated dependencies [77cf7e5]
+- Updated dependencies [fd907e9]
+- Updated dependencies [bcf689a]
+- Updated dependencies [36df83d]
+- Updated dependencies [1edbc0e]
+- Updated dependencies [df922bd]
+  - @opensea/sdk@12.13.0
+  - @opensea/api-types@0.17.0
+
+## 2.12.1
+
+### Patch Changes
+
+- 8e3c55f: Escape terminal control characters in CLI output. Table, toon and JSON output, and error messages on stderr, now show C0, DEL, C1 and bidi control characters from API data as `\uXXXX` escapes, so a collection, NFT or token name can no longer move the cursor, rewrite earlier lines or set the clipboard when printed.
+
 ## 2.12.0
 
 ### Minor Changes

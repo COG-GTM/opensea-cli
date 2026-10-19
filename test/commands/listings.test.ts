@@ -212,4 +212,105 @@ describe("listingsCommand", () => {
       body,
     )
   })
+
+  it("post submits the signed order unchanged to the chain and protocol listing endpoint", async () => {
+    const response = { order_hash: "0xhash", chain: "base" }
+    ctx.mockClient.post.mockResolvedValue(response)
+    const body = {
+      parameters: { offerer: "0xmaker", salt: "1", counter: "0" },
+      signature: "0xsig",
+      protocol_address: "0x0000000000000068f116a894984e2db1123eb395",
+    }
+    const file = writeTempJson(body)
+
+    const cmd = listingsCommand(ctx.getClient, ctx.getFormat)
+    try {
+      await cmd.parseAsync(["post", "base", "--body", file], { from: "user" })
+    } finally {
+      rmSync(file, { force: true })
+    }
+
+    expect(ctx.mockClient.get).not.toHaveBeenCalled()
+    expect(ctx.mockClient.post).toHaveBeenCalledWith(
+      "/api/v2/orders/base/seaport/listings",
+      body,
+    )
+    expect(ctx.consoleSpy).toHaveBeenCalledWith(
+      JSON.stringify(response, null, 2),
+    )
+  })
+
+  it("post encodes a chain or protocol containing a slash", async () => {
+    ctx.mockClient.post.mockResolvedValue({})
+    const file = writeTempJson({ signature: "0xsig" })
+
+    const cmd = listingsCommand(ctx.getClient, ctx.getFormat)
+    try {
+      await cmd.parseAsync(
+        [
+          "post",
+          "base/../../listings",
+          "--protocol",
+          "seaport/x",
+          "--body",
+          file,
+        ],
+        { from: "user" },
+      )
+    } finally {
+      rmSync(file, { force: true })
+    }
+
+    expect(ctx.mockClient.post).toHaveBeenCalledWith(
+      "/api/v2/orders/base%2F..%2F..%2Flistings/seaport%2Fx/listings",
+      { signature: "0xsig" },
+    )
+  })
+
+  it("post rejects a dot-segment chain without sending a request", async () => {
+    const file = writeTempJson({ signature: "0xsig" })
+
+    const cmd = listingsCommand(ctx.getClient, ctx.getFormat)
+    try {
+      await expect(
+        cmd.parseAsync(["post", "..", "--body", file], { from: "user" }),
+      ).rejects.toThrow('Invalid path segment: ".."')
+    } finally {
+      rmSync(file, { force: true })
+    }
+
+    expect(ctx.mockClient.post).not.toHaveBeenCalled()
+  })
+
+  it("fulfillment-data posts the request body unchanged and prints the response", async () => {
+    const response = { protocol: "seaport1.6", fulfillment_data: {} }
+    ctx.mockClient.post.mockResolvedValue(response)
+    const body = {
+      listing: {
+        hash: "0xlisting",
+        chain: "ethereum",
+        protocol_address: "0x0000000000000068f116a894984e2db1123eb395",
+      },
+      fulfiller: { address: "0xbuyer" },
+    }
+    const file = writeTempJson(body)
+
+    const cmd = listingsCommand(ctx.getClient, ctx.getFormat)
+    try {
+      await cmd.parseAsync(["fulfillment-data", "--body", file], {
+        from: "user",
+      })
+    } finally {
+      rmSync(file, { force: true })
+    }
+
+    expect(ctx.mockClient.get).not.toHaveBeenCalled()
+    expect(ctx.mockClient.post).toHaveBeenCalledWith(
+      "/api/v2/listings/fulfillment_data",
+      body,
+    )
+    expect(ctx.consoleSpy).toHaveBeenCalledWith(
+      JSON.stringify(response, null, 2),
+    )
+  })
 })

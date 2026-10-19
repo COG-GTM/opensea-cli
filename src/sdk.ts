@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto"
 import { OpenSeaClient } from "./client.js"
 import { checkHealth } from "./health.js"
+import { pathSegment } from "./parse.js"
 import type {
   Account,
   AccountResolveResponse,
@@ -15,6 +16,8 @@ import type {
   BatchCollectionsRequest,
   BatchNftsRequest,
   BatchTokensRequest,
+  BuildOfferRequest,
+  BuildOfferResponse,
   Chain,
   ChainListResponse,
   ClosedPositionsResponse,
@@ -26,6 +29,7 @@ import type {
   CollectionOrderBy,
   CollectionPageMetadataResponse,
   CollectionPaginatedResponse,
+  CollectionPfpProfilesResponse,
   CollectionRefreshResponse,
   CollectionStats,
   CollectionTransactionResponse,
@@ -42,6 +46,7 @@ import type {
   CreateOfferFulfillmentActionsRequest,
   CreateOfferFulfillmentActionsResponse,
   CreatorFeeEnforcementStatusResponse,
+  CriteriaOfferRequest,
   CrossChainDropMintRequest,
   CrossChainDropMintResponse,
   CrossChainFulfillmentResponse,
@@ -57,16 +62,21 @@ import type {
   DropTransactionResponse,
   EventType,
   FloorPriceHistoryResponse,
+  FulfillListingResponse,
+  GetOrderResponse,
   GetTraitsResponse,
   HealthResult,
   Listing,
+  ListingFulfillmentDataRequest,
   NFT,
   NftAnalyticsResponse,
   NftBatchResponse,
   Offer,
+  OfferFulfillmentDataRequest,
   OhlcvResponse,
   OpenSeaClientConfig,
   OwnersPaginatedResponse,
+  PaymentToken,
   PortfolioHistoryResponse,
   PortfolioStatsResponse,
   PositionTokenTransfersResponse,
@@ -78,6 +88,7 @@ import type {
   SearchAssetType,
   SearchResponse,
   SetCollectionPricingCurrencyResponse,
+  SignedOrderRequest,
   StandardizedNftFacetsResponse,
   StandardizedNftListResponse,
   SwapExecuteRequest,
@@ -101,7 +112,9 @@ import type {
   ToolSearchPaginatedResponse,
   ToolUsageRequest,
   ToolUsageResponse,
+  TopPfpCollectionsResponse,
   TraitFilter,
+  TraitFloorsResponse,
   TransactionReceiptRequest,
   TransactionReceiptResponse,
   TransferRequest,
@@ -244,6 +257,35 @@ export class CollectionsAPI {
 
   async traits(slug: string): Promise<GetTraitsResponse> {
     return this.client.get<GetTraitsResponse>(`/api/v2/traits/${slug}`)
+  }
+
+  /** Floor price per text trait value with at least one active listing. */
+  async traitFloors(slug: string): Promise<TraitFloorsResponse> {
+    return this.client.get(`/api/v2/traits/${encodeURIComponent(slug)}/floors`)
+  }
+
+  async pfpProfiles(
+    slug: string,
+    options?: { limit?: number; next?: string },
+  ): Promise<CollectionPfpProfilesResponse> {
+    return this.client.get(
+      `/api/v2/collections/${encodeURIComponent(slug)}/pfp-profiles`,
+      { limit: options?.limit, cursor: options?.next },
+    )
+  }
+
+  /**
+   * Collections ranked by verified NFT profile-picture wearer count. `limit`
+   * (1-50) is required; omit `chain` to rank across every chain.
+   */
+  async topPfp(options: {
+    limit: number
+    chain?: Chain
+  }): Promise<TopPfpCollectionsResponse> {
+    return this.client.get("/api/v2/pfp/top-collections", {
+      limit: options.limit,
+      chain: options.chain,
+    })
   }
 
   async trending(options?: {
@@ -1216,6 +1258,23 @@ class ListingsAPI {
   ): Promise<CreateListingFulfillmentActionsResponse> {
     return this.client.post("/api/v2/listings/fulfillment/actions", request)
   }
+
+  async post(
+    chain: string,
+    protocol: string,
+    request: SignedOrderRequest,
+  ): Promise<Listing> {
+    return this.client.post(
+      `/api/v2/orders/${pathSegment(chain)}/${pathSegment(protocol)}/listings`,
+      request,
+    )
+  }
+
+  async fulfillmentData(
+    request: ListingFulfillmentDataRequest,
+  ): Promise<FulfillListingResponse> {
+    return this.client.post("/api/v2/listings/fulfillment_data", request)
+  }
 }
 
 class OffersAPI {
@@ -1290,10 +1349,45 @@ class OffersAPI {
   ): Promise<CreateOfferFulfillmentActionsResponse> {
     return this.client.post("/api/v2/offers/fulfillment/actions", request)
   }
+
+  async post(
+    chain: string,
+    protocol: string,
+    request: SignedOrderRequest,
+  ): Promise<Offer> {
+    return this.client.post(
+      `/api/v2/orders/${pathSegment(chain)}/${pathSegment(protocol)}/offers`,
+      request,
+    )
+  }
+
+  async build(request: BuildOfferRequest): Promise<BuildOfferResponse> {
+    return this.client.post("/api/v2/offers/build", request)
+  }
+
+  async postCriteria(request: CriteriaOfferRequest): Promise<Offer> {
+    return this.client.post("/api/v2/offers", request)
+  }
+
+  async fulfillmentData(
+    request: OfferFulfillmentDataRequest,
+  ): Promise<FulfillListingResponse> {
+    return this.client.post("/api/v2/offers/fulfillment_data", request)
+  }
 }
 
 class OrdersAPI {
   constructor(private client: OpenSeaClient) {}
+
+  async get(
+    chain: string,
+    protocolAddress: string,
+    orderHash: string,
+  ): Promise<GetOrderResponse> {
+    return this.client.get(
+      `/api/v2/orders/chain/${pathSegment(chain)}/protocol/${pathSegment(protocolAddress)}/${pathSegment(orderHash)}`,
+    )
+  }
 
   async cancelActions(
     chain: string,
@@ -1724,6 +1818,12 @@ class TokensAPI {
 
   async get(chain: Chain, address: string): Promise<TokenDetails> {
     return this.client.get(`/api/v2/chain/${chain}/token/${address}`)
+  }
+
+  async paymentToken(chain: Chain, address: string): Promise<PaymentToken> {
+    return this.client.get(
+      `/api/v2/chain/${encodeURIComponent(chain)}/payment_token/${encodeURIComponent(address)}`,
+    )
   }
 
   async batch(request: BatchTokensRequest): Promise<TokenBatchResponse> {
