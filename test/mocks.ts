@@ -34,6 +34,21 @@ export function createCommandTestContext(): CommandTestContext {
   return { mockClient, getClient, getFormat, consoleSpy }
 }
 
+const CLIENT_METHODS = ["get", "post", "put", "patch", "delete"] as const
+
+export function resolveAllRequests(mockClient: MockClient): void {
+  for (const method of CLIENT_METHODS) mockClient[method].mockResolvedValue({})
+}
+
+/** Every request the mock client received, as `"METHOD path"`, in method order. */
+export function requestedPaths(mockClient: MockClient): string[] {
+  return CLIENT_METHODS.flatMap(method =>
+    mockClient[method].mock.calls.map(
+      call => `${method.toUpperCase()} ${String(call[0])}`,
+    ),
+  )
+}
+
 export function mockFetchResponse(data: unknown, status = 200): void {
   vi.spyOn(globalThis, "fetch").mockResolvedValue(
     new Response(JSON.stringify(data), { status }),

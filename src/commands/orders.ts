@@ -56,7 +56,7 @@ export function ordersCommand(
           ? readJsonBodyOption<CancelRequest>(options.body, "--body")
           : undefined
         const result = await client.post(
-          `/api/v2/orders/chain/${chain}/protocol/${protocolAddress}/${orderHash}/cancel`,
+          `/api/v2/orders/chain/${pathSegment(chain)}/protocol/${pathSegment(protocolAddress)}/${pathSegment(orderHash)}/cancel`,
           body,
         )
         console.log(formatOutput(result, getFormat()))
@@ -86,7 +86,7 @@ export function ordersCommand(
           "--body",
         )
         const result = await client.post<CreateCancelOrderActionsResponse>(
-          `/api/v2/orders/chain/${chain}/protocol/${protocolAddress}/${orderIdentifier}/cancel/actions`,
+          `/api/v2/orders/chain/${pathSegment(chain)}/protocol/${pathSegment(protocolAddress)}/${pathSegment(orderIdentifier)}/cancel/actions`,
           body,
         )
         console.log(formatOutput(result, getFormat()))

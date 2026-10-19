@@ -23,6 +23,7 @@ import type { OpenSeaClient } from "../client.js"
 import { DEFAULT_TIMEOUT_MS, USER_AGENT } from "../client.js"
 import type { OutputFormat } from "../output.js"
 import { formatOutput } from "../output.js"
+import { pathSegment } from "../parse.js"
 import type { WalletUnlinkResponse } from "../types/index.js"
 
 const DEFAULT_BASE_URL = "https://api.opensea.io"
@@ -282,7 +283,7 @@ export function authCommand(
       }
       const client = getClient()
       const result = await client.delete<WalletUnlinkResponse>(
-        `/api/v2/accounts/wallets/${wallet}`,
+        `/api/v2/accounts/wallets/${pathSegment(wallet)}`,
       )
       console.log(formatOutput(result, getFormat()))
     })

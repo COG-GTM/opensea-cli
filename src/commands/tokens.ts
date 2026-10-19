@@ -6,13 +6,10 @@ import {
   addLimitOption,
   addPaginationOptions,
   parseIntOption,
+  pathSegment,
   readJsonBodyOption,
 } from "../parse.js"
-import type {
-  BatchTokensRequest,
-  Chain,
-  TokenBatchResponse,
-} from "../types/index.js"
+import type { BatchTokensRequest, TokenBatchResponse } from "../types/index.js"
 
 export function tokensCommand(
   getClient: () => OpenSeaClient,
@@ -74,7 +71,7 @@ export function tokensCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/chain/${chain as Chain}/token/${address}`,
+        `/api/v2/chain/${pathSegment(chain)}/token/${pathSegment(address)}`,
       )
     })
 
@@ -90,7 +87,7 @@ export function tokensCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/chain/${encodeURIComponent(chain)}/payment_token/${encodeURIComponent(address)}`,
+        `/api/v2/chain/${pathSegment(chain)}/payment_token/${pathSegment(address)}`,
       )
     })
 
@@ -137,7 +134,7 @@ export function tokensCommand(
         await outputGet(
           client,
           getFormat(),
-          `/api/v2/chain/${chain as Chain}/token/${address}/price_history`,
+          `/api/v2/chain/${pathSegment(chain)}/token/${pathSegment(address)}/price_history`,
           {
             start_time: options.startTime,
             end_time: options.endTime,
@@ -177,7 +174,7 @@ export function tokensCommand(
         await outputGet(
           client,
           getFormat(),
-          `/api/v2/chain/${chain as Chain}/token/${address}/ohlcv`,
+          `/api/v2/chain/${pathSegment(chain)}/token/${pathSegment(address)}/ohlcv`,
           {
             start_time: options.startTime,
             bucket_size: options.bucketSize,
@@ -205,7 +202,7 @@ export function tokensCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/chain/${chain as Chain}/token/${address}/activity`,
+        `/api/v2/chain/${pathSegment(chain)}/token/${pathSegment(address)}/activity`,
         {
           limit: parseIntOption(options.limit, "--limit"),
           cursor: options.next,
@@ -228,7 +225,7 @@ export function tokensCommand(
         await outputGet(
           client,
           getFormat(),
-          `/api/v2/chain/${chain as Chain}/token/${address}/activity/stats`,
+          `/api/v2/chain/${pathSegment(chain)}/token/${pathSegment(address)}/activity/stats`,
           { windows: options.windows },
         )
       },
@@ -266,7 +263,7 @@ export function tokensCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/account/${address}/token-activity`,
+        `/api/v2/account/${pathSegment(address)}/token-activity`,
         {
           chains: options.chains,
           tokens: options.tokens,
@@ -305,7 +302,7 @@ export function tokensCommand(
         await outputGet(
           client,
           getFormat(),
-          `/api/v2/chain/${chain as Chain}/token/${address}/holders`,
+          `/api/v2/chain/${pathSegment(chain)}/token/${pathSegment(address)}/holders`,
           {
             limit: parseIntOption(options.limit, "--limit"),
             cursor: options.next,
@@ -329,7 +326,7 @@ export function tokensCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/chain/${chain as Chain}/token/${address}/liquidity-pools`,
+        `/api/v2/chain/${pathSegment(chain)}/token/${pathSegment(address)}/liquidity-pools`,
         {
           limit: parseIntOption(options.limit, "--limit"),
         },

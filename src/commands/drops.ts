@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto"
 import { constants, lstatSync, readdirSync, readFileSync } from "node:fs"
 import { open } from "node:fs/promises"
 import { basename, extname, join } from "node:path"
+import { uploadToContext } from "@opensea/sdk"
 import { Command } from "commander"
 import type { OpenSeaClient } from "../client.js"
 import type { OutputFormat } from "../output.js"
@@ -9,6 +10,7 @@ import { formatOutput, outputGet } from "../output.js"
 import {
   addPaginationOptions,
   parseIntOption,
+  pathSegment,
   readJsonBodyOption,
   requireChainOption,
 } from "../parse.js"
@@ -32,7 +34,7 @@ import type {
   UploadDropItemMediaRequest,
   ValidateDropAllowlistRequest,
 } from "../types/index.js"
-import { selectUploadContext, uploadToContext } from "../upload.js"
+import { selectUploadContext } from "../upload.js"
 import type { EvmWalletAdapter, WalletProvider } from "../wallet/index.js"
 import {
   createWalletForProvider,
@@ -333,7 +335,7 @@ export function dropsCommand(
     .argument("<slug>", "Collection slug")
     .action(async (slug: string) => {
       const client = getClient()
-      await outputGet(client, getFormat(), `/api/v2/drops/${slug}`)
+      await outputGet(client, getFormat(), `/api/v2/drops/${pathSegment(slug)}`)
     })
 
   cmd
@@ -343,7 +345,7 @@ export function dropsCommand(
     .action(async (slug: string) => {
       const client = getClient()
       const result = await client.get<DropEligibilityResponse>(
-        `/api/v2/drops/${slug}/eligibility`,
+        `/api/v2/drops/${pathSegment(slug)}/eligibility`,
       )
       console.log(formatOutput(result, getFormat()))
     })
@@ -448,7 +450,7 @@ export function dropsCommand(
           },
         }
         const result = await client.post<CrossChainDropMintResponse>(
-          `/api/v2/drops/${slug}/cross_chain_mint`,
+          `/api/v2/drops/${pathSegment(slug)}/cross_chain_mint`,
           request,
         )
         console.log(formatOutput(result, getFormat()))
@@ -557,7 +559,7 @@ export function dropsCommand(
         await outputGet(
           client,
           format,
-          `/api/v2/drops/deploy/${chain as Chain}/${txHash}/receipt`,
+          `/api/v2/drops/deploy/${pathSegment(chain)}/${pathSegment(txHash)}/receipt`,
         )
         return
       }
@@ -599,7 +601,10 @@ export function dropsCommand(
         options.body,
         "--body",
       )
-      const result = await client.post(`/api/v2/drops/${slug}`, request)
+      const result = await client.post(
+        `/api/v2/drops/${pathSegment(slug)}`,
+        request,
+      )
       console.log(formatOutput(result, getFormat()))
     })
 
@@ -609,7 +614,9 @@ export function dropsCommand(
     .argument("<slug>", "Collection slug")
     .action(async (slug: string) => {
       const client = getClient()
-      const result = await client.post(`/api/v2/drops/${slug}/allowlist`)
+      const result = await client.post(
+        `/api/v2/drops/${pathSegment(slug)}/allowlist`,
+      )
       console.log(formatOutput(result, getFormat()))
     })
 
@@ -628,7 +635,7 @@ export function dropsCommand(
         "--body",
       )
       const result = await client.post(
-        `/api/v2/drops/${slug}/allowlist/validate`,
+        `/api/v2/drops/${pathSegment(slug)}/allowlist/validate`,
         request,
       )
       console.log(formatOutput(result, getFormat()))
@@ -649,7 +656,7 @@ export function dropsCommand(
         "--body",
       )
       const result = await client.post(
-        `/api/v2/drops/${slug}/prereveal-item`,
+        `/api/v2/drops/${pathSegment(slug)}/prereveal-item`,
         request,
       )
       console.log(formatOutput(result, getFormat()))
@@ -669,7 +676,10 @@ export function dropsCommand(
         options.body,
         "--body",
       )
-      const result = await client.post(`/api/v2/drops/${slug}/items`, request)
+      const result = await client.post(
+        `/api/v2/drops/${pathSegment(slug)}/items`,
+        request,
+      )
       console.log(formatOutput(result, getFormat()))
     })
 
@@ -690,7 +700,7 @@ export function dropsCommand(
           "--body",
         )
         const result = await client.put(
-          `/api/v2/drops/${slug}/items/${tokenId}`,
+          `/api/v2/drops/${pathSegment(slug)}/items/${pathSegment(tokenId)}`,
           request,
         )
         console.log(formatOutput(result, getFormat()))
@@ -714,7 +724,7 @@ export function dropsCommand(
           "--body",
         )
         const result = await client.patch(
-          `/api/v2/drops/${slug}/items/${tokenId}`,
+          `/api/v2/drops/${pathSegment(slug)}/items/${pathSegment(tokenId)}`,
           request,
         )
         console.log(formatOutput(result, getFormat()))
@@ -842,7 +852,7 @@ export function dropsCommand(
             ? body
             : { ...body, upload_batch_id: options.uploadBatchId }
         const result = await client.post(
-          `/api/v2/drops/${slug}/items/media`,
+          `/api/v2/drops/${pathSegment(slug)}/items/media`,
           request,
         )
         console.log(formatOutput(result, getFormat()))
@@ -922,7 +932,7 @@ export function dropsCommand(
         "--body",
       )
       const result = await client.post(
-        `/api/v2/drops/${slug}/items/media/save`,
+        `/api/v2/drops/${pathSegment(slug)}/items/media/save`,
         request,
       )
       console.log(formatOutput(result, getFormat()))
@@ -1045,13 +1055,9 @@ export function dropsCommand(
             `Could not read --file '${options.file}': ${(err as Error).message}`,
           )
         }
-        const result = await uploadToContext(
-          context,
-          new Blob([new Uint8Array(bytes)]),
-          {
-            filename: basename(options.file),
-          },
-        )
+        const result = await uploadToContext(context, bytes, {
+          filename: basename(options.file),
+        })
         console.log(formatOutput(result, getFormat()))
       },
     )

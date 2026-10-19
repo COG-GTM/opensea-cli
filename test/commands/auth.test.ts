@@ -1,7 +1,11 @@
 import type { MockInstance } from "vitest"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { authCommand } from "../../src/commands/auth.js"
-import { createCommandTestContext } from "../mocks.js"
+import {
+  createCommandTestContext,
+  requestedPaths,
+  resolveAllRequests,
+} from "../mocks.js"
 
 describe("authCommand", () => {
   let fetchSpy: MockInstance<typeof fetch>
@@ -280,5 +284,47 @@ describe("authCommand", () => {
     expect(output.message).toBe("No stored tokens")
 
     logSpy.mockRestore()
+  })
+})
+
+describe("authCommand path arguments", () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  function unlinkWalletCommand(
+    ctx: ReturnType<typeof createCommandTestContext>,
+  ) {
+    return authCommand(
+      () => undefined,
+      ctx.getFormat,
+      () => undefined,
+      ctx.getClient,
+    )
+  }
+
+  it("unlink-wallet encodes the wallet", async () => {
+    const ctx = createCommandTestContext()
+    resolveAllRequests(ctx.mockClient)
+    await unlinkWalletCommand(ctx).parseAsync(["unlink-wallet", "0xa/1"], {
+      from: "user",
+    })
+    expect(requestedPaths(ctx.mockClient)).toEqual([
+      "DELETE /api/v2/accounts/wallets/0xa%2F1",
+    ])
+  })
+
+  it.each([
+    ".",
+    "..",
+  ])("unlink-wallet rejects %j before any request", async segment => {
+    const ctx = createCommandTestContext()
+    resolveAllRequests(ctx.mockClient)
+    await expect(
+      unlinkWalletCommand(ctx).parseAsync(["unlink-wallet", segment], {
+        from: "user",
+      }),
+    ).rejects.toThrow(`Invalid path segment: "${segment}"`)
+    expect(requestedPaths(ctx.mockClient)).toEqual([])
   })
 })

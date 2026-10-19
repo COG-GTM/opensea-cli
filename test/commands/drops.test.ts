@@ -12,7 +12,12 @@ import { Readable } from "node:stream"
 import type { EvmWalletAdapter } from "@opensea/wallet-adapters"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { dropsCommand } from "../../src/commands/drops.js"
-import { type CommandTestContext, createCommandTestContext } from "../mocks.js"
+import {
+  type CommandTestContext,
+  createCommandTestContext,
+  requestedPaths,
+  resolveAllRequests,
+} from "../mocks.js"
 
 const walletMock = vi.hoisted(() => ({ createWalletFromEnv: vi.fn() }))
 
@@ -1137,7 +1142,7 @@ describe("dropsCommand", () => {
       expect(fetchSpy).not.toHaveBeenCalled()
     })
 
-    it("fails with the status and the start of the body on a non-2xx upload", async () => {
+    it("fails with only the status on a non-2xx upload, never the body", async () => {
       const body = `<Error><Code>AccessDenied</Code>${"x".repeat(1_000)}</Error>`
       vi.spyOn(globalThis, "fetch").mockResolvedValue(
         new Response(body, { status: 403 }),
@@ -1154,11 +1159,11 @@ describe("dropsCommand", () => {
         { from: "user" },
       )
 
-      await expect(run).rejects.toThrow(
-        "Storage upload failed with HTTP 403: <Error><Code>AccessDenied</Code>",
-      )
+      await expect(run).rejects.toThrow(/^Storage upload failed with HTTP 403$/)
       await expect(run).rejects.toSatisfy(
-        (error: Error) => !error.message.includes("x".repeat(600)),
+        (error: Error) =>
+          !error.message.includes("AccessDenied") &&
+          !error.message.includes("x".repeat(10)),
       )
       expect(ctx.consoleSpy).not.toHaveBeenCalled()
     })
@@ -1566,5 +1571,107 @@ describe("dropsCommand", () => {
         /^Deprecated: use save-item-media-batch/,
       )
     })
+  })
+})
+
+describe("dropsCommand path arguments", () => {
+  const BODY = "<body>"
+  let ctx: CommandTestContext
+  let body: string
+
+  beforeEach(() => {
+    ctx = createCommandTestContext()
+    resolveAllRequests(ctx.mockClient)
+    body = writeTempJson({})
+  })
+
+  afterEach(() => {
+    rmSync(body, { force: true })
+    vi.restoreAllMocks()
+  })
+
+  it.each<[string[], string]>([
+    [["items", "d/1"], "GET /api/v2/drops/d%2F1/items"],
+    [["get", "d/1"], "GET /api/v2/drops/d%2F1"],
+    [["eligibility", "d/1"], "GET /api/v2/drops/d%2F1/eligibility"],
+    [["mint", "d/1", "--minter", "0xm"], "POST /api/v2/drops/d%2F1/mint"],
+    [
+      [
+        "cross-chain-mint",
+        "d/1",
+        "--payer",
+        "0xp",
+        "--minter",
+        "0xm",
+        "--payment-chain",
+        "base",
+        "--payment-token",
+        "0xt",
+      ],
+      "POST /api/v2/drops/d%2F1/cross_chain_mint",
+    ],
+    [
+      ["deploy-receipt", "base/1", "0xh/2"],
+      "GET /api/v2/drops/deploy/base%2F1/0xh%2F2/receipt",
+    ],
+    [["save-edits", "d/1", "--body", BODY], "POST /api/v2/drops/d%2F1"],
+    [["create-allowlist-upload", "d/1"], "POST /api/v2/drops/d%2F1/allowlist"],
+    [
+      ["validate-allowlist", "d/1", "--body", BODY],
+      "POST /api/v2/drops/d%2F1/allowlist/validate",
+    ],
+    [
+      ["save-prereveal-item", "d/1", "--body", BODY],
+      "POST /api/v2/drops/d%2F1/prereveal-item",
+    ],
+    [["save-item", "d/1", "--body", BODY], "POST /api/v2/drops/d%2F1/items"],
+    [
+      ["update-self-mint-item", "d/1", "7/2", "--body", BODY],
+      "PUT /api/v2/drops/d%2F1/items/7%2F2",
+    ],
+    [
+      ["update-item", "d/1", "7/2", "--body", BODY],
+      "PATCH /api/v2/drops/d%2F1/items/7%2F2",
+    ],
+    [
+      ["create-item-media-upload", "d/1", "--body", BODY],
+      "POST /api/v2/drops/d%2F1/items/media",
+    ],
+    [
+      ["save-item-media-batch", "d/1", "--body", BODY],
+      "POST /api/v2/drops/d%2F1/items/media/save-batch",
+    ],
+    [
+      ["save-item-media", "d/1", "--body", BODY],
+      "POST /api/v2/drops/d%2F1/items/media/save",
+    ],
+    [["publish", "d/1"], "POST /api/v2/drops/d%2F1/publish"],
+    [["unpublish", "d/1"], "POST /api/v2/drops/d%2F1/unpublish"],
+    [["upload-metadata-ipfs", "d/1"], "POST /api/v2/drops/d%2F1/metadata/ipfs"],
+    [
+      ["metadata-ipfs-status", "d/1", "wf/2"],
+      "GET /api/v2/drops/d%2F1/metadata/ipfs/wf%2F2",
+    ],
+    [
+      ["create-manifest-upload", "d/1"],
+      "POST /api/v2/drops/d%2F1/items/manifest",
+    ],
+  ])("%j encodes every path argument", async (argv, request) => {
+    const cmd = dropsCommand(ctx.getClient, ctx.getFormat)
+    await cmd.parseAsync(
+      argv.map(arg => (arg === BODY ? body : arg)),
+      { from: "user" },
+    )
+    expect(requestedPaths(ctx.mockClient)).toEqual([request])
+  })
+
+  it.each([".", ".."])("rejects %j before any request", async segment => {
+    const cmd = dropsCommand(ctx.getClient, ctx.getFormat)
+    await expect(
+      cmd.parseAsync(["update-item", "d", segment, "--body", body], {
+        from: "user",
+      }),
+    ).rejects.toThrow(`Invalid path segment: "${segment}"`)
+    expect(requestedPaths(ctx.mockClient)).toEqual([])
   })
 })

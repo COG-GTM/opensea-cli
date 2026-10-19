@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { OpenSeaAPIError, OpenSeaClient } from "../src/client.js"
+import { OpenSeaCLI } from "../src/sdk.js"
 import { mockFetchResponse, mockFetchTextResponse } from "./mocks.js"
 
 describe("OpenSeaClient", () => {
@@ -645,5 +646,36 @@ describe("OpenSeaAPIError", () => {
   it("is an instance of Error", () => {
     const error = new OpenSeaAPIError(500, "fail", "/test")
     expect(error).toBeInstanceOf(Error)
+  })
+})
+
+describe("encoded path segments on the wire", () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it("keeps an encoded segment encoded in the URL a GET requests", async () => {
+    mockFetchResponse({ collection: "x" })
+    const sdk = new OpenSeaCLI({ apiKey: "test-key", maxRetries: 0 })
+
+    await sdk.collections.get("cats/1?a#b")
+
+    const [url] = vi.mocked(fetch).mock.calls[0]
+    expect(String(url)).toBe(
+      "https://api.opensea.io/api/v2/collections/cats%2F1%3Fa%23b",
+    )
+  })
+
+  it("keeps encoded segments encoded in the URL a POST requests", async () => {
+    mockFetchResponse({})
+    const sdk = new OpenSeaCLI({ apiKey: "test-key", maxRetries: 0 })
+
+    await sdk.listings.post("ethereum/x", "seaport", {} as never)
+
+    const [url, init] = vi.mocked(fetch).mock.calls[0]
+    expect(String(url)).toBe(
+      "https://api.opensea.io/api/v2/orders/ethereum%2Fx/seaport/listings",
+    )
+    expect(init?.method).toBe("POST")
   })
 })

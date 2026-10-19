@@ -2,7 +2,7 @@ import { Command } from "commander"
 import type { OpenSeaClient } from "../client.js"
 import type { OutputFormat } from "../output.js"
 import { formatOutput, outputGet } from "../output.js"
-import { readJsonBodyOption } from "../parse.js"
+import { pathSegment, readJsonBodyOption } from "../parse.js"
 import type {
   ClaimAccountUsernameRequest,
   ClaimAccountUsernameResponse,
@@ -177,7 +177,7 @@ export function profileCommand(
         "--body",
       )
       const result = await client.patch<ProfileShelfResponse>(
-        `/api/v2/profile/shelves/${shelfId}`,
+        `/api/v2/profile/shelves/${pathSegment(shelfId)}`,
         request,
       )
       console.log(formatOutput(result, getFormat()))
@@ -189,7 +189,9 @@ export function profileCommand(
     .argument("<shelf_id>", "Shelf id to delete")
     .action(async (shelfId: string) => {
       const client = getClient()
-      const result = await client.delete(`/api/v2/profile/shelves/${shelfId}`)
+      const result = await client.delete(
+        `/api/v2/profile/shelves/${pathSegment(shelfId)}`,
+      )
       console.log(formatOutput(result, getFormat()))
     })
 

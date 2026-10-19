@@ -6,6 +6,7 @@ import {
   addLimitOption,
   addPaginationOptions,
   parseIntOption,
+  pathSegment,
 } from "../parse.js"
 
 export function toolsCommand(
@@ -74,7 +75,7 @@ export function toolsCommand(
         await outputGet(
           client,
           getFormat(),
-          `/api/v2/tools/${registryChain}/${registryAddr}/${toolId}`,
+          `/api/v2/tools/${pathSegment(registryChain)}/${pathSegment(registryAddr)}/${pathSegment(toolId)}`,
         )
       },
     )
@@ -110,7 +111,7 @@ export function toolsCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/tools/${registryChain}/${registryAddr}/${toolId}/activity`,
+        `/api/v2/tools/${pathSegment(registryChain)}/${pathSegment(registryAddr)}/${pathSegment(toolId)}/activity`,
         {
           limit: parseIntOption(options.limit, "--limit"),
           offset,

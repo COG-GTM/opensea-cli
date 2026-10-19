@@ -2,6 +2,7 @@ import { Command } from "commander"
 import type { OpenSeaClient } from "../client.js"
 import type { OutputFormat } from "../output.js"
 import { formatOutput, outputGet } from "../output.js"
+import { pathSegment } from "../parse.js"
 import type {
   AccountResolveResponse,
   AgentAccountStatusResponse,
@@ -54,7 +55,7 @@ async function resolveCounterparty(
   if (EVM_ADDRESS.test(identifier)) return identifier
 
   const resolved = await client.get<AccountResolveResponse>(
-    `/api/v2/accounts/resolve/${encodeURIComponent(identifier)}`,
+    `/api/v2/accounts/resolve/${pathSegment(identifier)}`,
   )
   const address = resolved?.address
   if (!address) {
@@ -248,7 +249,7 @@ export function agentCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/accounts/${encodeURIComponent(addressOrUsername)}/agent-relationships`,
+        `/api/v2/accounts/${pathSegment(addressOrUsername)}/agent-relationships`,
       )
     })
 

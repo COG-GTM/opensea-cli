@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { eventsCommand } from "../../src/commands/events.js"
-import { type CommandTestContext, createCommandTestContext } from "../mocks.js"
+import {
+  type CommandTestContext,
+  createCommandTestContext,
+  requestedPaths,
+  resolveAllRequests,
+} from "../mocks.js"
 
 describe("eventsCommand", () => {
   let ctx: CommandTestContext
@@ -125,5 +130,39 @@ describe("eventsCommand", () => {
       "/api/v2/events/chain/ethereum/contract/0xabc/nfts/1",
       expect.objectContaining({ event_type: "sale" }),
     )
+  })
+})
+
+describe("eventsCommand path arguments", () => {
+  let ctx: CommandTestContext
+
+  beforeEach(() => {
+    ctx = createCommandTestContext()
+    resolveAllRequests(ctx.mockClient)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it.each<[string[], string]>([
+    [["by-account", "0xa/1"], "GET /api/v2/events/accounts/0xa%2F1"],
+    [["by-collection", "cats/1"], "GET /api/v2/events/collection/cats%2F1"],
+    [
+      ["by-nft", "base/1", "0xc/2", "7/3"],
+      "GET /api/v2/events/chain/base%2F1/contract/0xc%2F2/nfts/7%2F3",
+    ],
+  ])("%j encodes every path argument", async (argv, request) => {
+    const cmd = eventsCommand(ctx.getClient, ctx.getFormat)
+    await cmd.parseAsync(argv, { from: "user" })
+    expect(requestedPaths(ctx.mockClient)).toEqual([request])
+  })
+
+  it.each([".", ".."])("rejects %j before any request", async segment => {
+    const cmd = eventsCommand(ctx.getClient, ctx.getFormat)
+    await expect(
+      cmd.parseAsync(["by-nft", "base", "0xc", segment], { from: "user" }),
+    ).rejects.toThrow(`Invalid path segment: "${segment}"`)
+    expect(requestedPaths(ctx.mockClient)).toEqual([])
   })
 })

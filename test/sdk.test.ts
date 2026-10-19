@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { OpenSeaAPIError, OpenSeaClient } from "../src/client.js"
 import { OpenSeaCLI } from "../src/sdk.js"
+import type { Chain } from "../src/types/index.js"
 
 vi.mock("../src/client.js", async importOriginal => {
   const actual = await importOriginal<typeof import("../src/client.js")>()
@@ -1419,6 +1420,458 @@ describe("OpenSeaCLI", () => {
           recipient: "0xrecipient",
         }),
       )
+    })
+  })
+
+  describe("path arguments", () => {
+    const chain = "base/1" as Chain
+    const request = {} as never
+
+    function requestedPaths(): string[] {
+      return [
+        ...mockGet.mock.calls.map(call => `GET ${call[0]}`),
+        ...mockPost.mock.calls.map(call => `POST ${call[0]}`),
+        ...mockPut.mock.calls.map(call => `PUT ${call[0]}`),
+        ...mockDelete.mock.calls.map(call => `DELETE ${call[0]}`),
+      ]
+    }
+
+    beforeEach(() => {
+      for (const mock of [mockGet, mockPost, mockPut, mockDelete]) {
+        mock.mockResolvedValue({})
+      }
+    })
+
+    it.each<[string, (sdk: OpenSeaCLI) => Promise<unknown>, string]>([
+      [
+        "collections.get",
+        s => s.collections.get("cats/1"),
+        "GET /api/v2/collections/cats%2F1",
+      ],
+      [
+        "collections.stats",
+        s => s.collections.stats("cats/1"),
+        "GET /api/v2/collections/cats%2F1/stats",
+      ],
+      [
+        "collections.traits",
+        s => s.collections.traits("cats/1"),
+        "GET /api/v2/traits/cats%2F1",
+      ],
+      [
+        "collections.traitFloors",
+        s => s.collections.traitFloors("cats/1"),
+        "GET /api/v2/traits/cats%2F1/floors",
+      ],
+      [
+        "collections.pfpProfiles",
+        s => s.collections.pfpProfiles("cats/1"),
+        "GET /api/v2/collections/cats%2F1/pfp-profiles",
+      ],
+      [
+        "collections.offerAggregates",
+        s => s.collections.offerAggregates("cats/1"),
+        "GET /api/v2/collections/cats%2F1/offer_aggregates",
+      ],
+      [
+        "collections.holders",
+        s => s.collections.holders("cats/1"),
+        "GET /api/v2/collections/cats%2F1/holders",
+      ],
+      [
+        "collections.floorPrices",
+        s => s.collections.floorPrices("cats/1"),
+        "GET /api/v2/collections/cats%2F1/floor_prices",
+      ],
+      [
+        "collections.pageMetadata",
+        s => s.collections.pageMetadata("cats/1"),
+        "GET /api/v2/collections/cats%2F1/metadata",
+      ],
+      [
+        "collections.createPageMediaUpload",
+        s => s.collections.createPageMediaUpload("cats/1", "hero/2", "a/b"),
+        "POST /api/v2/collections/cats%2F1/media/hero%2F2?content_type=a%2Fb",
+      ],
+      [
+        "collections.setPricingCurrency",
+        s => s.collections.setPricingCurrency("cats/1", true),
+        "POST /api/v2/collections/cats%2F1/pricing_currency",
+      ],
+      [
+        "collections.creatorFeeEnforcement",
+        s => s.collections.creatorFeeEnforcement("cats/1"),
+        "GET /api/v2/collections/cats%2F1/creator_fee_enforcement",
+      ],
+      [
+        "collections.buildCreatorFeeEnforcementTransactions",
+        s =>
+          s.collections.buildCreatorFeeEnforcementTransactions("cats/1", true),
+        "POST /api/v2/collections/cats%2F1/creator_fee_enforcement",
+      ],
+      [
+        "collections.refresh",
+        s => s.collections.refresh("cats/1"),
+        "POST /api/v2/collections/cats%2F1/refresh",
+      ],
+      ["drops.get", s => s.drops.get("d/1"), "GET /api/v2/drops/d%2F1"],
+      [
+        "drops.items",
+        s => s.drops.items("d/1"),
+        "GET /api/v2/drops/d%2F1/items",
+      ],
+      [
+        "drops.mint",
+        s => s.drops.mint("d/1", { minter: "0xm" }),
+        "POST /api/v2/drops/d%2F1/mint",
+      ],
+      [
+        "drops.crossChainMint",
+        s => s.drops.crossChainMint("d/1", request),
+        "POST /api/v2/drops/d%2F1/cross_chain_mint",
+      ],
+      [
+        "drops.deployReceipt",
+        s => s.drops.deployReceipt(chain, "0xh/2"),
+        "GET /api/v2/drops/deploy/base%2F1/0xh%2F2/receipt",
+      ],
+      [
+        "drops.buildPublishTransaction",
+        s => s.drops.buildPublishTransaction("d/1"),
+        "POST /api/v2/drops/d%2F1/publish",
+      ],
+      [
+        "drops.buildUnpublishTransaction",
+        s => s.drops.buildUnpublishTransaction("d/1"),
+        "POST /api/v2/drops/d%2F1/unpublish",
+      ],
+      [
+        "drops.uploadMetadataToIpfs",
+        s => s.drops.uploadMetadataToIpfs("d/1"),
+        "POST /api/v2/drops/d%2F1/metadata/ipfs",
+      ],
+      [
+        "drops.getMetadataIpfsProgress",
+        s => s.drops.getMetadataIpfsProgress("d/1", "wf/2"),
+        "GET /api/v2/drops/d%2F1/metadata/ipfs/wf%2F2",
+      ],
+      [
+        "drops.createManifestUpload",
+        s => s.drops.createManifestUpload("d/1"),
+        "POST /api/v2/drops/d%2F1/items/manifest",
+      ],
+      [
+        "drops.createItemMediaUpload",
+        s => s.drops.createItemMediaUpload("d/1", request),
+        "POST /api/v2/drops/d%2F1/items/media",
+      ],
+      [
+        "drops.saveItemMediaBatch",
+        s => s.drops.saveItemMediaBatch("d/1", request),
+        "POST /api/v2/drops/d%2F1/items/media/save-batch",
+      ],
+      [
+        "nfts.get",
+        s => s.nfts.get(chain, "0xc/2", "7/3"),
+        "GET /api/v2/chain/base%2F1/contract/0xc%2F2/nfts/7%2F3",
+      ],
+      [
+        "nfts.listByCollection",
+        s => s.nfts.listByCollection("cats/1"),
+        "GET /api/v2/collection/cats%2F1/nfts",
+      ],
+      [
+        "nfts.listByContract",
+        s => s.nfts.listByContract(chain, "0xc/2"),
+        "GET /api/v2/chain/base%2F1/contract/0xc%2F2/nfts",
+      ],
+      [
+        "nfts.listByAccount",
+        s => s.nfts.listByAccount(chain, "0xa/2"),
+        "GET /api/v2/chain/base%2F1/account/0xa%2F2/nfts",
+      ],
+      [
+        "nfts.listByGroup",
+        s => s.nfts.listByGroup("g/1"),
+        "GET /api/v2/nfts/group/g%2F1",
+      ],
+      [
+        "nfts.groupFacets",
+        s => s.nfts.groupFacets("g/1"),
+        "GET /api/v2/nfts/group/g%2F1/facets",
+      ],
+      [
+        "nfts.refresh",
+        s => s.nfts.refresh(chain, "0xc/2", "7/3"),
+        "POST /api/v2/chain/base%2F1/contract/0xc%2F2/nfts/7%2F3/refresh",
+      ],
+      [
+        "nfts.getContract",
+        s => s.nfts.getContract(chain, "0xc/2"),
+        "GET /api/v2/chain/base%2F1/contract/0xc%2F2",
+      ],
+      [
+        "nfts.validateMetadata",
+        s => s.nfts.validateMetadata(chain, "0xc/2", "7/3"),
+        "POST /api/v2/chain/base%2F1/contract/0xc%2F2/nfts/7%2F3/validate-metadata",
+      ],
+      [
+        "nfts.getCollection",
+        s => s.nfts.getCollection(chain, "0xc/2", "7/3"),
+        "GET /api/v2/chain/base%2F1/contract/0xc%2F2/nfts/7%2F3/collection",
+      ],
+      [
+        "nfts.getMetadata",
+        s => s.nfts.getMetadata(chain, "0xc/2", "7/3"),
+        "GET /api/v2/metadata/base%2F1/0xc%2F2/7%2F3",
+      ],
+      [
+        "nfts.owners",
+        s => s.nfts.owners(chain, "0xc/2", "7/3"),
+        "GET /api/v2/chain/base%2F1/contract/0xc%2F2/nfts/7%2F3/owners",
+      ],
+      [
+        "nfts.analytics",
+        s => s.nfts.analytics(chain, "0xc/2", "7/3"),
+        "GET /api/v2/chain/base%2F1/contract/0xc%2F2/nfts/7%2F3/analytics",
+      ],
+      [
+        "listings.all",
+        s => s.listings.all("cats/1"),
+        "GET /api/v2/listings/collection/cats%2F1/all",
+      ],
+      [
+        "listings.best",
+        s => s.listings.best("cats/1"),
+        "GET /api/v2/listings/collection/cats%2F1/best",
+      ],
+      [
+        "listings.bestForNFT",
+        s => s.listings.bestForNFT("cats/1", "7/2"),
+        "GET /api/v2/listings/collection/cats%2F1/nfts/7%2F2/best",
+      ],
+      [
+        "listings.post",
+        s => s.listings.post("base/1", "seaport/2", request),
+        "POST /api/v2/orders/base%2F1/seaport%2F2/listings",
+      ],
+      [
+        "offers.all",
+        s => s.offers.all("cats/1"),
+        "GET /api/v2/offers/collection/cats%2F1/all",
+      ],
+      [
+        "offers.collection",
+        s => s.offers.collection("cats/1"),
+        "GET /api/v2/offers/collection/cats%2F1",
+      ],
+      [
+        "offers.byNFT",
+        s => s.offers.byNFT("cats/1", "7/2"),
+        "GET /api/v2/offers/collection/cats%2F1/nfts/7%2F2",
+      ],
+      [
+        "offers.bestForNFT",
+        s => s.offers.bestForNFT("cats/1", "7/2"),
+        "GET /api/v2/offers/collection/cats%2F1/nfts/7%2F2/best",
+      ],
+      [
+        "offers.traits",
+        s => s.offers.traits("cats/1", { type: "Hat", value: "Cap" }),
+        "GET /api/v2/offers/collection/cats%2F1/traits",
+      ],
+      [
+        "offers.post",
+        s => s.offers.post("base/1", "seaport/2", request),
+        "POST /api/v2/orders/base%2F1/seaport%2F2/offers",
+      ],
+      [
+        "orders.get",
+        s => s.orders.get("base/1", "0xp/2", "0xh/3"),
+        "GET /api/v2/orders/chain/base%2F1/protocol/0xp%2F2/0xh%2F3",
+      ],
+      [
+        "orders.cancelActions",
+        s => s.orders.cancelActions("base/1", "0xp/2", "0xh/3", request),
+        "POST /api/v2/orders/chain/base%2F1/protocol/0xp%2F2/0xh%2F3/cancel/actions",
+      ],
+      [
+        "events.byAccount",
+        s => s.events.byAccount("0xa/1"),
+        "GET /api/v2/events/accounts/0xa%2F1",
+      ],
+      [
+        "events.byCollection",
+        s => s.events.byCollection("cats/1"),
+        "GET /api/v2/events/collection/cats%2F1",
+      ],
+      [
+        "events.byNFT",
+        s => s.events.byNFT(chain, "0xc/2", "7/3"),
+        "GET /api/v2/events/chain/base%2F1/contract/0xc%2F2/nfts/7%2F3",
+      ],
+      [
+        "accounts.get",
+        s => s.accounts.get("0xa/1"),
+        "GET /api/v2/accounts/0xa%2F1",
+      ],
+      [
+        "accounts.makePrivate",
+        s => s.accounts.makePrivate("0xa/1"),
+        "PUT /api/v2/accounts/wallets/0xa%2F1/private",
+      ],
+      [
+        "accounts.makePublic",
+        s => s.accounts.makePublic("0xa/1"),
+        "DELETE /api/v2/accounts/wallets/0xa%2F1/private",
+      ],
+      [
+        "accounts.agentRelationships",
+        s => s.accounts.agentRelationships("alice/1"),
+        "GET /api/v2/accounts/alice%2F1/agent-relationships",
+      ],
+      [
+        "accounts.tokens",
+        s => s.accounts.tokens("0xa/1"),
+        "GET /api/v2/account/0xa%2F1/tokens",
+      ],
+      [
+        "accounts.resolve",
+        s => s.accounts.resolve("alice/1"),
+        "GET /api/v2/accounts/resolve/alice%2F1",
+      ],
+      [
+        "accounts.portfolio",
+        s => s.accounts.portfolio("0xa/1"),
+        "GET /api/v2/account/0xa%2F1/portfolio",
+      ],
+      [
+        "accounts.portfolioHistory",
+        s => s.accounts.portfolioHistory("0xa/1"),
+        "GET /api/v2/account/0xa%2F1/portfolio/history",
+      ],
+      [
+        "accounts.pnl",
+        s => s.accounts.pnl("0xa/1"),
+        "GET /api/v2/account/0xa%2F1/pnl",
+      ],
+      [
+        "accounts.closedPositions",
+        s => s.accounts.closedPositions("0xa/1"),
+        "GET /api/v2/account/0xa%2F1/pnl/closed-positions",
+      ],
+      [
+        "accounts.tokenTransfers",
+        s =>
+          s.accounts.tokenTransfers("0xa/1", {
+            contractAddress: "0xc",
+            chain: "base",
+          }),
+        "GET /api/v2/account/0xa%2F1/pnl/token-transfers",
+      ],
+      [
+        "accounts.profileOffers",
+        s => s.accounts.profileOffers("0xa/1"),
+        "GET /api/v2/account/0xa%2F1/offers",
+      ],
+      [
+        "accounts.profileOffersReceived",
+        s => s.accounts.profileOffersReceived("0xa/1"),
+        "GET /api/v2/account/0xa%2F1/offers_received",
+      ],
+      [
+        "accounts.profileListings",
+        s => s.accounts.profileListings("0xa/1"),
+        "GET /api/v2/account/0xa%2F1/listings",
+      ],
+      [
+        "accounts.profileFavorites",
+        s => s.accounts.profileFavorites("0xa/1"),
+        "GET /api/v2/account/0xa%2F1/favorites",
+      ],
+      [
+        "accounts.profileCollections",
+        s => s.accounts.profileCollections("0xa/1"),
+        "GET /api/v2/account/0xa%2F1/collections",
+      ],
+      [
+        "agent.profile",
+        s => s.agent.profile("alice/1"),
+        "GET /api/v2/accounts/alice%2F1/agent-relationships",
+      ],
+      [
+        "tokens.get",
+        s => s.tokens.get(chain, "0xt/2"),
+        "GET /api/v2/chain/base%2F1/token/0xt%2F2",
+      ],
+      [
+        "tokens.paymentToken",
+        s => s.tokens.paymentToken(chain, "0xt/2"),
+        "GET /api/v2/chain/base%2F1/payment_token/0xt%2F2",
+      ],
+      [
+        "tokens.priceHistory",
+        s => s.tokens.priceHistory(chain, "0xt/2", { startTime: "2026-01-01" }),
+        "GET /api/v2/chain/base%2F1/token/0xt%2F2/price_history",
+      ],
+      [
+        "tokens.ohlcv",
+        s =>
+          s.tokens.ohlcv(chain, "0xt/2", {
+            startTime: "2026-01-01",
+            bucketSize: "1h",
+          }),
+        "GET /api/v2/chain/base%2F1/token/0xt%2F2/ohlcv",
+      ],
+      [
+        "tokens.activity",
+        s => s.tokens.activity(chain, "0xt/2"),
+        "GET /api/v2/chain/base%2F1/token/0xt%2F2/activity",
+      ],
+      [
+        "tokens.activityStats",
+        s => s.tokens.activityStats(chain, "0xt/2"),
+        "GET /api/v2/chain/base%2F1/token/0xt%2F2/activity/stats",
+      ],
+      [
+        "tokens.accountActivity",
+        s => s.tokens.accountActivity("0xa/1"),
+        "GET /api/v2/account/0xa%2F1/token-activity",
+      ],
+      [
+        "tokens.holders",
+        s => s.tokens.holders(chain, "0xt/2"),
+        "GET /api/v2/chain/base%2F1/token/0xt%2F2/holders",
+      ],
+      [
+        "tokens.liquidityPools",
+        s => s.tokens.liquidityPools(chain, "0xt/2"),
+        "GET /api/v2/chain/base%2F1/token/0xt%2F2/liquidity-pools",
+      ],
+      [
+        "tools.get",
+        s => s.tools.get("base/1", "0xr/2", "t/3"),
+        "GET /api/v2/tools/base%2F1/0xr%2F2/t%2F3",
+      ],
+      [
+        "tools.activity",
+        s => s.tools.activity("base/1", "0xr/2", "t/3"),
+        "GET /api/v2/tools/base%2F1/0xr%2F2/t%2F3/activity",
+      ],
+    ])("%s encodes every path argument", async (_name, call, path) => {
+      await call(sdk)
+      expect(requestedPaths()).toEqual([path])
+    })
+
+    it.each<[string, (sdk: OpenSeaCLI) => Promise<unknown>]>([
+      ["collections.get .", s => s.collections.get(".")],
+      ["nfts.get ..", s => s.nfts.get(chain, "0xc", "..")],
+      ["accounts.makePrivate ..", s => s.accounts.makePrivate("..")],
+      ["tokens.get .", s => s.tokens.get(chain, ".")],
+      ["tools.get ..", s => s.tools.get("base", "..", "1")],
+    ])("%s is rejected before any request", async (_name, call) => {
+      await expect(call(sdk)).rejects.toThrow("Invalid path segment")
+      expect(requestedPaths()).toEqual([])
     })
   })
 })

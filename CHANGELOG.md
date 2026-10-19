@@ -1,5 +1,17 @@
 # @opensea/cli
 
+## 3.0.0
+
+### Major Changes
+
+- 135c2d8: Storage uploads (`drops upload-file`, `drops upload-items`, `collections upload-page-media --file`, and the programmatic `uploadToContext` and `DropsAPI.uploadItemMedia`) now run on `@opensea/sdk`'s `uploadToContext`. A failed upload reports only `Storage upload failed with HTTP <status>`: the storage response body is never read, because S3-style error bodies can echo signed request material such as `AWSAccessKeyId`, `StringToSign` and `SignatureProvided`. `uploadToContext` also accepts a `Uint8Array` or `ArrayBuffer` as well as a `Blob`. The HTTPS-only and no-redirect rules are unchanged.
+
+  Migration: `UploadContextError` is now the SDK class and no longer has a `bodyExcerpt` property. Use `status` instead; the storage body is not available, because it can echo signed request material. `uploadToContext` now throws before sending anything when the context's `method` is not `POST` or `PUT`, where it used to send it as a POST.
+
+### Minor Changes
+
+- de0a7fd: Encode every caller-supplied value that the CLI and its programmatic client put into an OpenSea API path with `pathSegment()`. A value containing `/`, `?` or `#` is now sent as one encoded segment instead of reaching a different endpoint, and `.` or `..` as a path argument is rejected before any request is sent. Legitimate values (slugs, hex and base58 addresses, token ids, chain names, order hashes, numeric ids) produce the same URLs as before.
+
 ## 2.13.0
 
 ### Minor Changes

@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { toolsCommand } from "../../src/commands/tools.js"
-import { type CommandTestContext, createCommandTestContext } from "../mocks.js"
+import {
+  type CommandTestContext,
+  createCommandTestContext,
+  requestedPaths,
+  resolveAllRequests,
+} from "../mocks.js"
 
 describe("toolsCommand", () => {
   let ctx: CommandTestContext
@@ -258,5 +263,41 @@ describe("toolsCommand", () => {
         },
       )
     })
+  })
+})
+
+describe("toolsCommand path arguments", () => {
+  let ctx: CommandTestContext
+
+  beforeEach(() => {
+    ctx = createCommandTestContext()
+    resolveAllRequests(ctx.mockClient)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it.each<[string[], string]>([
+    [
+      ["get", "base/1", "0xr/2", "t/3"],
+      "GET /api/v2/tools/base%2F1/0xr%2F2/t%2F3",
+    ],
+    [
+      ["activity", "base/1", "0xr/2", "t/3"],
+      "GET /api/v2/tools/base%2F1/0xr%2F2/t%2F3/activity",
+    ],
+  ])("%j encodes every path argument", async (argv, request) => {
+    const cmd = toolsCommand(ctx.getClient, ctx.getFormat)
+    await cmd.parseAsync(argv, { from: "user" })
+    expect(requestedPaths(ctx.mockClient)).toEqual([request])
+  })
+
+  it.each([".", ".."])("rejects %j before any request", async segment => {
+    const cmd = toolsCommand(ctx.getClient, ctx.getFormat)
+    await expect(
+      cmd.parseAsync(["get", "base", "0xr", segment], { from: "user" }),
+    ).rejects.toThrow(`Invalid path segment: "${segment}"`)
+    expect(requestedPaths(ctx.mockClient)).toEqual([])
   })
 })

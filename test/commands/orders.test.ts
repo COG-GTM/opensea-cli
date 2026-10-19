@@ -3,7 +3,12 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { ordersCommand } from "../../src/commands/orders.js"
-import { type CommandTestContext, createCommandTestContext } from "../mocks.js"
+import {
+  type CommandTestContext,
+  createCommandTestContext,
+  requestedPaths,
+  resolveAllRequests,
+} from "../mocks.js"
 
 function writeTempJson(data: unknown): string {
   const dir = mkdtempSync(join(tmpdir(), "cli-test-"))
@@ -131,5 +136,52 @@ describe("ordersCommand", () => {
     ).rejects.toThrow('Invalid path segment: ".."')
 
     expect(ctx.mockClient.get).not.toHaveBeenCalled()
+  })
+})
+
+describe("ordersCommand path arguments", () => {
+  const BODY = "<body>"
+  let ctx: CommandTestContext
+  let body: string
+
+  beforeEach(() => {
+    ctx = createCommandTestContext()
+    resolveAllRequests(ctx.mockClient)
+    body = writeTempJson({})
+  })
+
+  afterEach(() => {
+    rmSync(body, { force: true })
+    vi.restoreAllMocks()
+  })
+
+  it.each<[string[], string]>([
+    [
+      ["get", "base/1", "0xp/2", "0xh/3"],
+      "GET /api/v2/orders/chain/base%2F1/protocol/0xp%2F2/0xh%2F3",
+    ],
+    [
+      ["cancel", "base/1", "0xp/2", "0xh/3"],
+      "POST /api/v2/orders/chain/base%2F1/protocol/0xp%2F2/0xh%2F3/cancel",
+    ],
+    [
+      ["cancel-actions", "base/1", "0xp/2", "0xh/3", "--body", BODY],
+      "POST /api/v2/orders/chain/base%2F1/protocol/0xp%2F2/0xh%2F3/cancel/actions",
+    ],
+  ])("%j encodes every path argument", async (argv, request) => {
+    const cmd = ordersCommand(ctx.getClient, ctx.getFormat)
+    await cmd.parseAsync(
+      argv.map(arg => (arg === BODY ? body : arg)),
+      { from: "user" },
+    )
+    expect(requestedPaths(ctx.mockClient)).toEqual([request])
+  })
+
+  it.each([".", ".."])("rejects %j before any request", async segment => {
+    const cmd = ordersCommand(ctx.getClient, ctx.getFormat)
+    await expect(
+      cmd.parseAsync(["cancel", "base", "0xp", segment], { from: "user" }),
+    ).rejects.toThrow(`Invalid path segment: "${segment}"`)
+    expect(requestedPaths(ctx.mockClient)).toEqual([])
   })
 })

@@ -44,7 +44,7 @@ export function listingsCommand(
         await outputGet(
           client,
           getFormat(),
-          `/api/v2/listings/collection/${collection}/all`,
+          `/api/v2/listings/collection/${pathSegment(collection)}/all`,
           {
             limit: parseIntOption(options.limit, "--limit"),
             next: options.next,
@@ -120,7 +120,7 @@ export function listingsCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/listings/collection/${collection}/best`,
+        `/api/v2/listings/collection/${pathSegment(collection)}/best`,
         {
           limit: parseIntOption(options.limit, "--limit"),
           next: options.next,
@@ -142,7 +142,7 @@ export function listingsCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/listings/collection/${collection}/nfts/${tokenId}/best`,
+        `/api/v2/listings/collection/${pathSegment(collection)}/nfts/${pathSegment(tokenId)}/best`,
       )
     })
 

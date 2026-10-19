@@ -11,11 +11,11 @@ import {
   parseFloatOption,
   parseIntOption,
   parseTraitsOption,
+  pathSegment,
   readJsonBodyOption,
 } from "../parse.js"
 import type {
   BatchNftsRequest,
-  Chain,
   NftBatchResponse,
   ValidateMetadataResponse,
 } from "../types/index.js"
@@ -75,7 +75,7 @@ export function nftsCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/chain/${chain}/contract/${contract}/nfts/${tokenId}`,
+        `/api/v2/chain/${pathSegment(chain)}/contract/${pathSegment(contract)}/nfts/${pathSegment(tokenId)}`,
       )
     })
 
@@ -92,11 +92,18 @@ export function nftsCommand(
       options: { limit: string; next?: string; traits?: string },
     ) => {
       const client = getClient()
-      await outputGet(client, getFormat(), `/api/v2/collection/${slug}/nfts`, {
-        limit: parseIntOption(options.limit, "--limit"),
-        next: options.next,
-        traits: options.traits ? parseTraitsOption(options.traits) : undefined,
-      })
+      await outputGet(
+        client,
+        getFormat(),
+        `/api/v2/collection/${pathSegment(slug)}/nfts`,
+        {
+          limit: parseIntOption(options.limit, "--limit"),
+          next: options.next,
+          traits: options.traits
+            ? parseTraitsOption(options.traits)
+            : undefined,
+        },
+      )
     },
   )
 
@@ -116,7 +123,7 @@ export function nftsCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/chain/${chain}/contract/${contract}/nfts`,
+        `/api/v2/chain/${pathSegment(chain)}/contract/${pathSegment(contract)}/nfts`,
         {
           limit: parseIntOption(options.limit, "--limit"),
           next: options.next,
@@ -150,7 +157,7 @@ export function nftsCommand(
         await outputGet(
           client,
           getFormat(),
-          `/api/v2/chain/${chain}/account/${address}/nfts`,
+          `/api/v2/chain/${pathSegment(chain)}/account/${pathSegment(address)}/nfts`,
           {
             limit: parseIntOption(options.limit, "--limit"),
             next: options.next,
@@ -209,33 +216,38 @@ export function nftsCommand(
       },
     ) => {
       const client = getClient()
-      await outputGet(client, getFormat(), `/api/v2/nfts/group/${group}`, {
-        collection_slugs: options.collectionSlug,
-        query: options.query,
-        is_listed:
-          options.isListed === undefined
-            ? undefined
-            : parseBooleanOption(options.isListed, "--is-listed"),
-        min_estimated_value_usd:
-          options.minEstimatedValueUsd === undefined
-            ? undefined
-            : parseFloatOption(
-                options.minEstimatedValueUsd,
-                "--min-estimated-value-usd",
-              ),
-        max_estimated_value_usd:
-          options.maxEstimatedValueUsd === undefined
-            ? undefined
-            : parseFloatOption(
-                options.maxEstimatedValueUsd,
-                "--max-estimated-value-usd",
-              ),
-        sort_by: options.sortBy,
-        sort_direction: options.sortDirection,
-        limit: parseIntOption(options.limit, "--limit"),
-        next: options.next,
-        ...groupFacetFilterParams(options),
-      })
+      await outputGet(
+        client,
+        getFormat(),
+        `/api/v2/nfts/group/${pathSegment(group)}`,
+        {
+          collection_slugs: options.collectionSlug,
+          query: options.query,
+          is_listed:
+            options.isListed === undefined
+              ? undefined
+              : parseBooleanOption(options.isListed, "--is-listed"),
+          min_estimated_value_usd:
+            options.minEstimatedValueUsd === undefined
+              ? undefined
+              : parseFloatOption(
+                  options.minEstimatedValueUsd,
+                  "--min-estimated-value-usd",
+                ),
+          max_estimated_value_usd:
+            options.maxEstimatedValueUsd === undefined
+              ? undefined
+              : parseFloatOption(
+                  options.maxEstimatedValueUsd,
+                  "--max-estimated-value-usd",
+                ),
+          sort_by: options.sortBy,
+          sort_direction: options.sortDirection,
+          limit: parseIntOption(options.limit, "--limit"),
+          next: options.next,
+          ...groupFacetFilterParams(options),
+        },
+      )
     },
   )
 
@@ -268,7 +280,7 @@ export function nftsCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/nfts/group/${group}/facets`,
+        `/api/v2/nfts/group/${pathSegment(group)}/facets`,
         {
           facet_types: options.facetType,
           collection_slugs: options.collectionSlug,
@@ -287,7 +299,7 @@ export function nftsCommand(
     .action(async (chain: string, contract: string, tokenId: string) => {
       const client = getClient()
       await client.post(
-        `/api/v2/chain/${chain}/contract/${contract}/nfts/${tokenId}/refresh`,
+        `/api/v2/chain/${pathSegment(chain)}/contract/${pathSegment(contract)}/nfts/${pathSegment(tokenId)}/refresh`,
       )
       console.log(
         formatOutput(
@@ -307,7 +319,7 @@ export function nftsCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/chain/${chain}/contract/${address}`,
+        `/api/v2/chain/${pathSegment(chain)}/contract/${pathSegment(address)}`,
       )
     })
 
@@ -334,7 +346,7 @@ export function nftsCommand(
           params.ignoreCachedItemUrls = true
         }
         const result = await client.post<ValidateMetadataResponse>(
-          `/api/v2/chain/${chain}/contract/${contract}/nfts/${tokenId}/validate-metadata`,
+          `/api/v2/chain/${pathSegment(chain)}/contract/${pathSegment(contract)}/nfts/${pathSegment(tokenId)}/validate-metadata`,
           undefined,
           params,
         )
@@ -381,7 +393,7 @@ export function nftsCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/chain/${chain as Chain}/contract/${contract}/nfts/${tokenId}/owners`,
+        `/api/v2/chain/${pathSegment(chain)}/contract/${pathSegment(contract)}/nfts/${pathSegment(tokenId)}/owners`,
         {
           limit: parseIntOption(options.limit, "--limit"),
           next: options.next,
@@ -401,7 +413,7 @@ export function nftsCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/chain/${chain as Chain}/contract/${contract}/nfts/${tokenId}/analytics`,
+        `/api/v2/chain/${pathSegment(chain)}/contract/${pathSegment(contract)}/nfts/${pathSegment(tokenId)}/analytics`,
       )
     })
 

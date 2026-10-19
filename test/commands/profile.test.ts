@@ -3,7 +3,12 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { profileCommand } from "../../src/commands/profile.js"
-import { type CommandTestContext, createCommandTestContext } from "../mocks.js"
+import {
+  type CommandTestContext,
+  createCommandTestContext,
+  requestedPaths,
+  resolveAllRequests,
+} from "../mocks.js"
 
 function writeTempJson(data: unknown): string {
   const dir = mkdtempSync(join(tmpdir(), "cli-test-"))
@@ -134,5 +139,45 @@ describe("profileCommand", () => {
     expect(ctx.mockClient.delete).toHaveBeenCalledWith(
       "/api/v2/profile/shelves/s1",
     )
+  })
+})
+
+describe("profileCommand path arguments", () => {
+  const BODY = "<body>"
+  let ctx: CommandTestContext
+  let body: string
+
+  beforeEach(() => {
+    ctx = createCommandTestContext()
+    resolveAllRequests(ctx.mockClient)
+    body = writeTempJson({})
+  })
+
+  afterEach(() => {
+    rmSync(body, { force: true })
+    vi.restoreAllMocks()
+  })
+
+  it.each<[string[], string]>([
+    [
+      ["update-shelf", "sh/1", "--body", BODY],
+      "PATCH /api/v2/profile/shelves/sh%2F1",
+    ],
+    [["delete-shelf", "sh/1"], "DELETE /api/v2/profile/shelves/sh%2F1"],
+  ])("%j encodes every path argument", async (argv, request) => {
+    const cmd = profileCommand(ctx.getClient, ctx.getFormat)
+    await cmd.parseAsync(
+      argv.map(arg => (arg === BODY ? body : arg)),
+      { from: "user" },
+    )
+    expect(requestedPaths(ctx.mockClient)).toEqual([request])
+  })
+
+  it.each([".", ".."])("rejects %j before any request", async segment => {
+    const cmd = profileCommand(ctx.getClient, ctx.getFormat)
+    await expect(
+      cmd.parseAsync(["delete-shelf", segment], { from: "user" }),
+    ).rejects.toThrow(`Invalid path segment: "${segment}"`)
+    expect(requestedPaths(ctx.mockClient)).toEqual([])
   })
 })

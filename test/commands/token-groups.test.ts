@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { tokenGroupsCommand } from "../../src/commands/token-groups.js"
-import { type CommandTestContext, createCommandTestContext } from "../mocks.js"
+import {
+  type CommandTestContext,
+  createCommandTestContext,
+  requestedPaths,
+  resolveAllRequests,
+} from "../mocks.js"
 
 describe("tokenGroupsCommand", () => {
   let ctx: CommandTestContext
@@ -42,5 +47,34 @@ describe("tokenGroupsCommand", () => {
     await cmd.parseAsync(["get", "eth"], { from: "user" })
 
     expect(ctx.mockClient.get).toHaveBeenCalledWith("/api/v2/token-groups/eth")
+  })
+})
+
+describe("tokenGroupsCommand path arguments", () => {
+  let ctx: CommandTestContext
+
+  beforeEach(() => {
+    ctx = createCommandTestContext()
+    resolveAllRequests(ctx.mockClient)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it.each<[string[], string]>([
+    [["get", "eth/1"], "GET /api/v2/token-groups/eth%2F1"],
+  ])("%j encodes every path argument", async (argv, request) => {
+    const cmd = tokenGroupsCommand(ctx.getClient, ctx.getFormat)
+    await cmd.parseAsync(argv, { from: "user" })
+    expect(requestedPaths(ctx.mockClient)).toEqual([request])
+  })
+
+  it.each([".", ".."])("rejects %j before any request", async segment => {
+    const cmd = tokenGroupsCommand(ctx.getClient, ctx.getFormat)
+    await expect(
+      cmd.parseAsync(["get", segment], { from: "user" }),
+    ).rejects.toThrow(`Invalid path segment: "${segment}"`)
+    expect(requestedPaths(ctx.mockClient)).toEqual([])
   })
 })

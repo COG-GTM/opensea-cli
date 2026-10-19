@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { agentCommand } from "../../src/commands/agent.js"
-import { type CommandTestContext, createCommandTestContext } from "../mocks.js"
+import {
+  type CommandTestContext,
+  createCommandTestContext,
+  requestedPaths,
+  resolveAllRequests,
+} from "../mocks.js"
 
 const OWNER_ADDRESS = "0xfba662e1a8e91a350702cf3b87d0c2d2fb4ba57f"
 const AGENT_ADDRESS = "0x8c8179678efca4220940466a3a919ac7625620d0"
@@ -354,5 +359,50 @@ describe("agentCommand", () => {
       )
       expect(ctx.mockClient.post).not.toHaveBeenCalled()
     })
+  })
+})
+
+describe("agentCommand path arguments", () => {
+  let ctx: CommandTestContext
+
+  beforeEach(() => {
+    ctx = createCommandTestContext()
+    resolveAllRequests(ctx.mockClient)
+    ctx.mockClient.get.mockResolvedValue({ address: AGENT_ADDRESS })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it.each<[string[], string[]]>([
+    [
+      ["profile", "alice/1"],
+      ["GET /api/v2/accounts/alice%2F1/agent-relationships"],
+    ],
+    [
+      ["add", "alice/1"],
+      [
+        "GET /api/v2/accounts/resolve/alice%2F1",
+        "POST /api/v2/accounts/agent-relationships",
+      ],
+    ],
+  ])("%j encodes the identifier", async (argv, requests) => {
+    const cmd = agentCommand(ctx.getClient, ctx.getFormat)
+    await cmd.parseAsync(argv, { from: "user" })
+    expect(requestedPaths(ctx.mockClient)).toEqual(requests)
+  })
+
+  it.each<[string, string]>([
+    ["profile", "."],
+    ["profile", ".."],
+    ["add", "."],
+    ["add", ".."],
+  ])("%s rejects %j before any request", async (subcommand, segment) => {
+    const cmd = agentCommand(ctx.getClient, ctx.getFormat)
+    await expect(
+      cmd.parseAsync([subcommand, segment], { from: "user" }),
+    ).rejects.toThrow(`Invalid path segment: "${segment}"`)
+    expect(requestedPaths(ctx.mockClient)).toEqual([])
   })
 })

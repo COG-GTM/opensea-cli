@@ -3,7 +3,12 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { offersCommand } from "../../src/commands/offers.js"
-import { type CommandTestContext, createCommandTestContext } from "../mocks.js"
+import {
+  type CommandTestContext,
+  createCommandTestContext,
+  requestedPaths,
+  resolveAllRequests,
+} from "../mocks.js"
 
 function writeTempJson(data: unknown): string {
   const dir = mkdtempSync(join(tmpdir(), "cli-test-"))
@@ -301,5 +306,58 @@ describe("offersCommand", () => {
     expect(ctx.consoleSpy).toHaveBeenCalledWith(
       JSON.stringify(response, null, 2),
     )
+  })
+})
+
+describe("offersCommand path arguments", () => {
+  const BODY = "<body>"
+  let ctx: CommandTestContext
+  let body: string
+
+  beforeEach(() => {
+    ctx = createCommandTestContext()
+    resolveAllRequests(ctx.mockClient)
+    body = writeTempJson({})
+  })
+
+  afterEach(() => {
+    rmSync(body, { force: true })
+    vi.restoreAllMocks()
+  })
+
+  it.each<[string[], string]>([
+    [["all", "cats/1"], "GET /api/v2/offers/collection/cats%2F1/all"],
+    [
+      ["by-nft", "cats/1", "7/2"],
+      "GET /api/v2/offers/collection/cats%2F1/nfts/7%2F2",
+    ],
+    [["collection", "cats/1"], "GET /api/v2/offers/collection/cats%2F1"],
+    [
+      ["best-for-nft", "cats/1", "7/2"],
+      "GET /api/v2/offers/collection/cats%2F1/nfts/7%2F2/best",
+    ],
+    [
+      ["traits", "cats/1", "--type", "Hat", "--value", "Cap"],
+      "GET /api/v2/offers/collection/cats%2F1/traits",
+    ],
+    [
+      ["post", "base/1", "--protocol", "seaport/2", "--body", BODY],
+      "POST /api/v2/orders/base%2F1/seaport%2F2/offers",
+    ],
+  ])("%j encodes every path argument", async (argv, request) => {
+    const cmd = offersCommand(ctx.getClient, ctx.getFormat)
+    await cmd.parseAsync(
+      argv.map(arg => (arg === BODY ? body : arg)),
+      { from: "user" },
+    )
+    expect(requestedPaths(ctx.mockClient)).toEqual([request])
+  })
+
+  it.each([".", ".."])("rejects %j before any request", async segment => {
+    const cmd = offersCommand(ctx.getClient, ctx.getFormat)
+    await expect(
+      cmd.parseAsync(["by-nft", "cats", segment], { from: "user" }),
+    ).rejects.toThrow(`Invalid path segment: "${segment}"`)
+    expect(requestedPaths(ctx.mockClient)).toEqual([])
   })
 })

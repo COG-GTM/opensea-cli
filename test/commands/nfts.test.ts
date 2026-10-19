@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { nftsCommand } from "../../src/commands/nfts.js"
-import { type CommandTestContext, createCommandTestContext } from "../mocks.js"
+import {
+  type CommandTestContext,
+  createCommandTestContext,
+  requestedPaths,
+  resolveAllRequests,
+} from "../mocks.js"
 
 describe("nftsCommand", () => {
   let ctx: CommandTestContext
@@ -222,5 +227,68 @@ describe("nftsCommand", () => {
     expect(ctx.mockClient.get).toHaveBeenCalledWith(
       "/api/v2/chain/ethereum/contract/0xabc",
     )
+  })
+})
+
+describe("nftsCommand path arguments", () => {
+  let ctx: CommandTestContext
+
+  beforeEach(() => {
+    ctx = createCommandTestContext()
+    resolveAllRequests(ctx.mockClient)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it.each<[string[], string]>([
+    [
+      ["get", "base/1", "0xc/2", "7/3"],
+      "GET /api/v2/chain/base%2F1/contract/0xc%2F2/nfts/7%2F3",
+    ],
+    [["list-by-collection", "cats/1"], "GET /api/v2/collection/cats%2F1/nfts"],
+    [
+      ["list-by-contract", "base/1", "0xc/2"],
+      "GET /api/v2/chain/base%2F1/contract/0xc%2F2/nfts",
+    ],
+    [
+      ["list-by-account", "base/1", "0xa/2"],
+      "GET /api/v2/chain/base%2F1/account/0xa%2F2/nfts",
+    ],
+    [["list-by-group", "g/1"], "GET /api/v2/nfts/group/g%2F1"],
+    [["group-facets", "g/1"], "GET /api/v2/nfts/group/g%2F1/facets"],
+    [
+      ["refresh", "base/1", "0xc/2", "7/3"],
+      "POST /api/v2/chain/base%2F1/contract/0xc%2F2/nfts/7%2F3/refresh",
+    ],
+    [
+      ["contract", "base/1", "0xc/2"],
+      "GET /api/v2/chain/base%2F1/contract/0xc%2F2",
+    ],
+    [
+      ["validate-metadata", "base/1", "0xc/2", "7/3"],
+      "POST /api/v2/chain/base%2F1/contract/0xc%2F2/nfts/7%2F3/validate-metadata",
+    ],
+    [
+      ["owners", "base/1", "0xc/2", "7/3"],
+      "GET /api/v2/chain/base%2F1/contract/0xc%2F2/nfts/7%2F3/owners",
+    ],
+    [
+      ["analytics", "base/1", "0xc/2", "7/3"],
+      "GET /api/v2/chain/base%2F1/contract/0xc%2F2/nfts/7%2F3/analytics",
+    ],
+  ])("%j encodes every path argument", async (argv, request) => {
+    const cmd = nftsCommand(ctx.getClient, ctx.getFormat)
+    await cmd.parseAsync(argv, { from: "user" })
+    expect(requestedPaths(ctx.mockClient)).toEqual([request])
+  })
+
+  it.each([".", ".."])("rejects %j before any request", async segment => {
+    const cmd = nftsCommand(ctx.getClient, ctx.getFormat)
+    await expect(
+      cmd.parseAsync(["get", "base", segment, "1"], { from: "user" }),
+    ).rejects.toThrow(`Invalid path segment: "${segment}"`)
+    expect(requestedPaths(ctx.mockClient)).toEqual([])
   })
 })

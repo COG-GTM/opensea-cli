@@ -5,6 +5,7 @@ import { formatOutput, outputGet } from "../output.js"
 import {
   addPaginationOptions,
   parseIntOption,
+  pathSegment,
   readJsonBodyOption,
   requireChainOption,
 } from "../parse.js"
@@ -27,7 +28,11 @@ export function accountsCommand(
     .argument("<address>", "Wallet address")
     .action(async (address: string) => {
       const client = getClient()
-      await outputGet(client, getFormat(), `/api/v2/accounts/${address}`)
+      await outputGet(
+        client,
+        getFormat(),
+        `/api/v2/accounts/${pathSegment(address)}`,
+      )
     })
 
   cmd
@@ -37,7 +42,7 @@ export function accountsCommand(
     .action(async (wallet: string) => {
       const client = getClient()
       const result = await client.put<WalletVisibilityResponse>(
-        `/api/v2/accounts/wallets/${encodeURIComponent(wallet)}/private`,
+        `/api/v2/accounts/wallets/${pathSegment(wallet)}/private`,
       )
       console.log(formatOutput(result, getFormat()))
     })
@@ -49,7 +54,7 @@ export function accountsCommand(
     .action(async (wallet: string) => {
       const client = getClient()
       const result = await client.delete<WalletVisibilityResponse>(
-        `/api/v2/accounts/wallets/${encodeURIComponent(wallet)}/private`,
+        `/api/v2/accounts/wallets/${pathSegment(wallet)}/private`,
       )
       console.log(formatOutput(result, getFormat()))
     })
@@ -63,7 +68,7 @@ export function accountsCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/accounts/${encodeURIComponent(addressOrUsername)}/agent-relationships`,
+        `/api/v2/accounts/${pathSegment(addressOrUsername)}/agent-relationships`,
       )
     })
 
@@ -96,7 +101,7 @@ export function accountsCommand(
         await outputGet(
           client,
           getFormat(),
-          `/api/v2/account/${address}/tokens`,
+          `/api/v2/account/${pathSegment(address)}/tokens`,
           {
             chains: options.chains,
             limit: parseIntOption(options.limit, "--limit"),
@@ -123,7 +128,7 @@ export function accountsCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/accounts/resolve/${identifier}`,
+        `/api/v2/accounts/resolve/${pathSegment(identifier)}`,
       )
     })
 
@@ -137,7 +142,7 @@ export function accountsCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/account/${address}/portfolio`,
+        `/api/v2/account/${pathSegment(address)}/portfolio`,
         { timeframe: options.timeframe },
       )
     })
@@ -152,7 +157,7 @@ export function accountsCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/account/${address}/portfolio/history`,
+        `/api/v2/account/${pathSegment(address)}/portfolio/history`,
         { timeframe: options.timeframe },
       )
     })
@@ -186,7 +191,7 @@ export function accountsCommand(
         await outputGet(
           client,
           getFormat(),
-          `/api/v2/account/${address}/offers`,
+          `/api/v2/account/${pathSegment(address)}/offers`,
           {
             after: options.after,
             limit: parseIntOption(options.limit, "--limit"),
@@ -228,7 +233,7 @@ export function accountsCommand(
         await outputGet(
           client,
           getFormat(),
-          `/api/v2/account/${address}/offers_received`,
+          `/api/v2/account/${pathSegment(address)}/offers_received`,
           {
             after: options.after,
             limit: parseIntOption(options.limit, "--limit"),
@@ -270,7 +275,7 @@ export function accountsCommand(
         await outputGet(
           client,
           getFormat(),
-          `/api/v2/account/${address}/listings`,
+          `/api/v2/account/${pathSegment(address)}/listings`,
           {
             after: options.after,
             limit: parseIntOption(options.limit, "--limit"),
@@ -307,7 +312,7 @@ export function accountsCommand(
         await outputGet(
           client,
           getFormat(),
-          `/api/v2/account/${address}/favorites`,
+          `/api/v2/account/${pathSegment(address)}/favorites`,
           {
             after: options.after,
             limit: parseIntOption(options.limit, "--limit"),
@@ -339,7 +344,7 @@ export function accountsCommand(
         await outputGet(
           client,
           getFormat(),
-          `/api/v2/account/${address}/collections`,
+          `/api/v2/account/${pathSegment(address)}/collections`,
           {
             after: options.after,
             limit: parseIntOption(options.limit, "--limit"),
@@ -355,7 +360,11 @@ export function accountsCommand(
     .argument("<address>", "Wallet address")
     .action(async (address: string) => {
       const client = getClient()
-      await outputGet(client, getFormat(), `/api/v2/account/${address}/pnl`)
+      await outputGet(
+        client,
+        getFormat(),
+        `/api/v2/account/${pathSegment(address)}/pnl`,
+      )
     })
 
   addPaginationOptions(
@@ -373,7 +382,7 @@ export function accountsCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/account/${address}/pnl/closed-positions`,
+        `/api/v2/account/${pathSegment(address)}/pnl/closed-positions`,
         {
           sort_by: options.sortBy,
           limit: parseIntOption(options.limit, "--limit"),
@@ -412,7 +421,7 @@ export function accountsCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/account/${address}/pnl/token-transfers`,
+        `/api/v2/account/${pathSegment(address)}/pnl/token-transfers`,
         {
           contract_address: options.contractAddress,
           chain,
@@ -434,7 +443,7 @@ export function accountsCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/accounts/${addressOrUsername}/relationship`,
+        `/api/v2/accounts/${pathSegment(addressOrUsername)}/relationship`,
       )
     })
 
@@ -452,7 +461,7 @@ export function accountsCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/accounts/${addressOrUsername}/followers`,
+        `/api/v2/accounts/${pathSegment(addressOrUsername)}/followers`,
         {
           limit: parseIntOption(options.limit, "--limit"),
           cursor: options.next,
@@ -475,7 +484,7 @@ export function accountsCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/accounts/${addressOrUsername}/following`,
+        `/api/v2/accounts/${pathSegment(addressOrUsername)}/following`,
         {
           limit: parseIntOption(options.limit, "--limit"),
           cursor: options.next,
@@ -491,7 +500,7 @@ export function accountsCommand(
     .action(async (addressOrUsername: string) => {
       const client = getClient()
       const result = await client.post(
-        `/api/v2/accounts/${addressOrUsername}/follow`,
+        `/api/v2/accounts/${pathSegment(addressOrUsername)}/follow`,
       )
       console.log(formatOutput(result, getFormat()))
     })
@@ -503,7 +512,7 @@ export function accountsCommand(
     .action(async (addressOrUsername: string) => {
       const client = getClient()
       const result = await client.delete(
-        `/api/v2/accounts/${addressOrUsername}/follow`,
+        `/api/v2/accounts/${pathSegment(addressOrUsername)}/follow`,
       )
       console.log(formatOutput(result, getFormat()))
     })
@@ -515,7 +524,7 @@ export function accountsCommand(
     .action(async (addressOrUsername: string) => {
       const client = getClient()
       const result = await client.post(
-        `/api/v2/accounts/${addressOrUsername}/watch`,
+        `/api/v2/accounts/${pathSegment(addressOrUsername)}/watch`,
       )
       console.log(formatOutput(result, getFormat()))
     })
@@ -527,7 +536,7 @@ export function accountsCommand(
     .action(async (addressOrUsername: string) => {
       const client = getClient()
       const result = await client.delete(
-        `/api/v2/accounts/${addressOrUsername}/watch`,
+        `/api/v2/accounts/${pathSegment(addressOrUsername)}/watch`,
       )
       console.log(formatOutput(result, getFormat()))
     })
@@ -543,7 +552,7 @@ export function accountsCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/account/${address}/token_watchlist`,
+        `/api/v2/account/${pathSegment(address)}/token_watchlist`,
       )
     })
 
@@ -558,7 +567,7 @@ export function accountsCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/account/${address}/perpetual_watchlist`,
+        `/api/v2/account/${pathSegment(address)}/perpetual_watchlist`,
       )
     })
 

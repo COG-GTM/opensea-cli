@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs"
 import { basename } from "node:path"
+import { uploadToContext } from "@opensea/sdk"
 import { Command } from "commander"
 import type { OpenSeaClient } from "../client.js"
 import type { OutputFormat } from "../output.js"
@@ -10,6 +11,7 @@ import {
   addSortDirectionOption,
   parseBooleanOption,
   parseIntOption,
+  pathSegment,
   readJsonBodyOption,
 } from "../parse.js"
 import { CollectionsAPI } from "../sdk.js"
@@ -23,7 +25,6 @@ import type {
   SetCollectionVisibilityRequest,
   UpdateCollectionMetadataRequest,
 } from "../types/index.js"
-import { uploadToContext } from "../upload.js"
 import { WALLET_PROVIDERS } from "../wallet/index.js"
 import { openEvmWallet } from "./drops.js"
 
@@ -51,7 +52,11 @@ export function collectionsCommand(
     .argument("<slug>", "Collection slug")
     .action(async (slug: string) => {
       const client = getClient()
-      await outputGet(client, getFormat(), `/api/v2/collections/${slug}`)
+      await outputGet(
+        client,
+        getFormat(),
+        `/api/v2/collections/${pathSegment(slug)}`,
+      )
     })
 
   addPaginationOptions(
@@ -89,7 +94,11 @@ export function collectionsCommand(
     .argument("<slug>", "Collection slug")
     .action(async (slug: string) => {
       const client = getClient()
-      await outputGet(client, getFormat(), `/api/v2/collections/${slug}/stats`)
+      await outputGet(
+        client,
+        getFormat(),
+        `/api/v2/collections/${pathSegment(slug)}/stats`,
+      )
     })
 
   cmd
@@ -98,7 +107,11 @@ export function collectionsCommand(
     .argument("<slug>", "Collection slug")
     .action(async (slug: string) => {
       const client = getClient()
-      await outputGet(client, getFormat(), `/api/v2/traits/${slug}`)
+      await outputGet(
+        client,
+        getFormat(),
+        `/api/v2/traits/${pathSegment(slug)}`,
+      )
     })
 
   cmd
@@ -112,7 +125,7 @@ export function collectionsCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/traits/${encodeURIComponent(slug)}/floors`,
+        `/api/v2/traits/${pathSegment(slug)}/floors`,
       )
     })
 
@@ -129,7 +142,7 @@ export function collectionsCommand(
     await outputGet(
       client,
       getFormat(),
-      `/api/v2/collections/${encodeURIComponent(slug)}/pfp-profiles`,
+      `/api/v2/collections/${pathSegment(slug)}/pfp-profiles`,
       {
         limit: parseIntOption(options.limit, "--limit"),
         cursor: options.next,
@@ -276,7 +289,7 @@ export function collectionsCommand(
       const client = getClient()
       const result =
         await client.get<CollectionOfferAggregatesPaginatedResponse>(
-          `/api/v2/collections/${slug}/offer_aggregates`,
+          `/api/v2/collections/${pathSegment(slug)}/offer_aggregates`,
           {
             limit: parseIntOption(options.limit, "--limit"),
             cursor: options.next,
@@ -311,7 +324,7 @@ export function collectionsCommand(
         await outputGet(
           client,
           getFormat(),
-          `/api/v2/collections/${slug}/holders`,
+          `/api/v2/collections/${pathSegment(slug)}/holders`,
           {
             limit: parseIntOption(options.limit, "--limit"),
             cursor: options.next,
@@ -340,7 +353,7 @@ export function collectionsCommand(
         await outputGet(
           client,
           getFormat(),
-          `/api/v2/collections/${slug}/floor_prices`,
+          `/api/v2/collections/${pathSegment(slug)}/floor_prices`,
           {
             timeframe: options.timeframe,
             resolution: options.resolution
@@ -367,7 +380,10 @@ export function collectionsCommand(
         options.body,
         "--body",
       )
-      const result = await client.patch(`/api/v2/collections/${slug}`, request)
+      const result = await client.patch(
+        `/api/v2/collections/${pathSegment(slug)}`,
+        request,
+      )
       console.log(formatOutput(result, getFormat()))
     })
 
@@ -386,7 +402,7 @@ export function collectionsCommand(
         "--body",
       )
       const result = await client.patch(
-        `/api/v2/collections/${slug}/metadata`,
+        `/api/v2/collections/${pathSegment(slug)}/metadata`,
         request,
       )
       console.log(formatOutput(result, getFormat()))
@@ -421,7 +437,7 @@ export function collectionsCommand(
         hidden: options.hidden === "true",
       }
       const result = await client.patch(
-        `/api/v2/collections/${slug}/visibility`,
+        `/api/v2/collections/${pathSegment(slug)}/visibility`,
         body,
       )
       console.log(formatOutput(result, getFormat()))
@@ -449,7 +465,7 @@ export function collectionsCommand(
       ) => {
         const client = getClient()
         const result = await client.post(
-          `/api/v2/collections/${slug}/images/${imageType}?content_type=${encodeURIComponent(options.contentType)}`,
+          `/api/v2/collections/${pathSegment(slug)}/images/${pathSegment(imageType)}?content_type=${encodeURIComponent(options.contentType)}`,
         )
         console.log(formatOutput(result, getFormat()))
       },

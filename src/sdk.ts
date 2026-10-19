@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto"
+import { uploadToContext } from "@opensea/sdk"
 import { OpenSeaClient } from "./client.js"
 import { checkHealth } from "./health.js"
 import { pathSegment } from "./parse.js"
@@ -125,7 +126,6 @@ import type {
   WalletPnlResponse,
   WalletVisibilityResponse,
 } from "./types/index.js"
-import { uploadToContext } from "./upload.js"
 import type {
   EvmWalletAdapter,
   TransactionResult,
@@ -167,7 +167,7 @@ export async function resolveQuantity(
     )
   }
   const token = await client.get<TokenDetails>(
-    `/api/v2/chain/${chain}/token/${tokenAddress}`,
+    `/api/v2/chain/${pathSegment(chain)}/token/${pathSegment(tokenAddress)}`,
   )
   return convertToSmallestUnit(quantity, token.decimals)
 }
@@ -230,7 +230,9 @@ export class CollectionsAPI {
   constructor(private client: OpenSeaClient) {}
 
   async get(slug: string): Promise<Collection> {
-    return this.client.get<Collection>(`/api/v2/collections/${slug}`)
+    return this.client.get<Collection>(
+      `/api/v2/collections/${pathSegment(slug)}`,
+    )
   }
 
   async list(options?: {
@@ -252,16 +254,20 @@ export class CollectionsAPI {
   }
 
   async stats(slug: string): Promise<CollectionStats> {
-    return this.client.get<CollectionStats>(`/api/v2/collections/${slug}/stats`)
+    return this.client.get<CollectionStats>(
+      `/api/v2/collections/${pathSegment(slug)}/stats`,
+    )
   }
 
   async traits(slug: string): Promise<GetTraitsResponse> {
-    return this.client.get<GetTraitsResponse>(`/api/v2/traits/${slug}`)
+    return this.client.get<GetTraitsResponse>(
+      `/api/v2/traits/${pathSegment(slug)}`,
+    )
   }
 
   /** Floor price per text trait value with at least one active listing. */
   async traitFloors(slug: string): Promise<TraitFloorsResponse> {
-    return this.client.get(`/api/v2/traits/${encodeURIComponent(slug)}/floors`)
+    return this.client.get(`/api/v2/traits/${pathSegment(slug)}/floors`)
   }
 
   async pfpProfiles(
@@ -269,7 +275,7 @@ export class CollectionsAPI {
     options?: { limit?: number; next?: string },
   ): Promise<CollectionPfpProfilesResponse> {
     return this.client.get(
-      `/api/v2/collections/${encodeURIComponent(slug)}/pfp-profiles`,
+      `/api/v2/collections/${pathSegment(slug)}/pfp-profiles`,
       { limit: options?.limit, cursor: options?.next },
     )
   }
@@ -330,11 +336,14 @@ export class CollectionsAPI {
     slug: string,
     options?: { limit?: number; next?: string; sortDirection?: "asc" | "desc" },
   ): Promise<CollectionOfferAggregatesPaginatedResponse> {
-    return this.client.get(`/api/v2/collections/${slug}/offer_aggregates`, {
-      limit: options?.limit,
-      cursor: options?.next,
-      sort_direction: options?.sortDirection,
-    })
+    return this.client.get(
+      `/api/v2/collections/${pathSegment(slug)}/offer_aggregates`,
+      {
+        limit: options?.limit,
+        cursor: options?.next,
+        sort_direction: options?.sortDirection,
+      },
+    )
   }
 
   async holders(
@@ -346,7 +355,7 @@ export class CollectionsAPI {
       ownedBy?: string
     },
   ): Promise<CollectionHoldersPaginatedResponse> {
-    return this.client.get(`/api/v2/collections/${slug}/holders`, {
+    return this.client.get(`/api/v2/collections/${pathSegment(slug)}/holders`, {
       limit: options?.limit,
       cursor: options?.next,
       sort_direction: options?.sortDirection,
@@ -358,10 +367,13 @@ export class CollectionsAPI {
     slug: string,
     options?: { timeframe?: string; resolution?: number },
   ): Promise<FloorPriceHistoryResponse> {
-    return this.client.get(`/api/v2/collections/${slug}/floor_prices`, {
-      timeframe: options?.timeframe,
-      resolution: options?.resolution,
-    })
+    return this.client.get(
+      `/api/v2/collections/${pathSegment(slug)}/floor_prices`,
+      {
+        timeframe: options?.timeframe,
+        resolution: options?.resolution,
+      },
+    )
   }
 
   /**
@@ -369,9 +381,7 @@ export class CollectionsAPI {
    * the `update-metadata` request body, plus the page's preview URL.
    */
   async pageMetadata(slug: string): Promise<CollectionPageMetadataResponse> {
-    return this.client.get(
-      `/api/v2/collections/${encodeURIComponent(slug)}/metadata`,
-    )
+    return this.client.get(`/api/v2/collections/${pathSegment(slug)}/metadata`)
   }
 
   /**
@@ -387,7 +397,7 @@ export class CollectionsAPI {
     contentType: string,
   ): Promise<UploadContext> {
     return this.client.post(
-      `/api/v2/collections/${encodeURIComponent(slug)}/media/${encodeURIComponent(placement)}?content_type=${encodeURIComponent(contentType)}`,
+      `/api/v2/collections/${pathSegment(slug)}/media/${pathSegment(placement)}?content_type=${encodeURIComponent(contentType)}`,
     )
   }
 
@@ -401,7 +411,7 @@ export class CollectionsAPI {
     useStablecoin: boolean,
   ): Promise<SetCollectionPricingCurrencyResponse> {
     return this.client.post(
-      `/api/v2/collections/${encodeURIComponent(slug)}/pricing_currency`,
+      `/api/v2/collections/${pathSegment(slug)}/pricing_currency`,
       { use_stablecoin: useStablecoin },
     )
   }
@@ -410,7 +420,7 @@ export class CollectionsAPI {
     slug: string,
   ): Promise<CreatorFeeEnforcementStatusResponse> {
     return this.client.get(
-      `/api/v2/collections/${encodeURIComponent(slug)}/creator_fee_enforcement`,
+      `/api/v2/collections/${pathSegment(slug)}/creator_fee_enforcement`,
     )
   }
 
@@ -424,7 +434,7 @@ export class CollectionsAPI {
     enabled: boolean,
   ): Promise<CollectionTransactionsResponse> {
     return this.client.post(
-      `/api/v2/collections/${encodeURIComponent(slug)}/creator_fee_enforcement`,
+      `/api/v2/collections/${pathSegment(slug)}/creator_fee_enforcement`,
       { enabled },
     )
   }
@@ -463,9 +473,7 @@ export class CollectionsAPI {
 
   /** Queue a refresh of the collection's metadata from its contract. */
   async refresh(slug: string): Promise<CollectionRefreshResponse> {
-    return this.client.post(
-      `/api/v2/collections/${encodeURIComponent(slug)}/refresh`,
-    )
+    return this.client.post(`/api/v2/collections/${pathSegment(slug)}/refresh`)
   }
 }
 
@@ -581,7 +589,7 @@ export class DropsAPI {
   }
 
   async get(slug: string): Promise<DropDetailedResponse> {
-    return this.client.get(`/api/v2/drops/${slug}`)
+    return this.client.get(`/api/v2/drops/${pathSegment(slug)}`)
   }
 
   /** The drop's saved items, including a draft's, one page at a time. */
@@ -589,7 +597,7 @@ export class DropsAPI {
     slug: string,
     options?: { limit?: number; next?: string },
   ): Promise<DropItemsPaginatedResponse> {
-    return this.client.get(`/api/v2/drops/${encodeURIComponent(slug)}/items`, {
+    return this.client.get(`/api/v2/drops/${pathSegment(slug)}/items`, {
       limit: options?.limit,
       next: options?.next,
     })
@@ -599,7 +607,7 @@ export class DropsAPI {
     slug: string,
     options: { minter: string; quantity?: number },
   ): Promise<DropMintResponse> {
-    return this.client.post(`/api/v2/drops/${slug}/mint`, {
+    return this.client.post(`/api/v2/drops/${pathSegment(slug)}/mint`, {
       minter: options.minter,
       quantity: options.quantity ?? 1,
     })
@@ -614,7 +622,10 @@ export class DropsAPI {
     slug: string,
     request: CrossChainDropMintRequest,
   ): Promise<CrossChainDropMintResponse> {
-    return this.client.post(`/api/v2/drops/${slug}/cross_chain_mint`, request)
+    return this.client.post(
+      `/api/v2/drops/${pathSegment(slug)}/cross_chain_mint`,
+      request,
+    )
   }
 
   async deploy(request: DropDeployRequest): Promise<DropDeployResponse> {
@@ -625,7 +636,9 @@ export class DropsAPI {
     chain: Chain,
     txHash: string,
   ): Promise<DropDeployReceiptResponse> {
-    return this.client.get(`/api/v2/drops/deploy/${chain}/${txHash}/receipt`)
+    return this.client.get(
+      `/api/v2/drops/deploy/${pathSegment(chain)}/${pathSegment(txHash)}/receipt`,
+    )
   }
 
   /**
@@ -719,15 +732,13 @@ export class DropsAPI {
   async buildPublishTransaction(
     slug: string,
   ): Promise<DropTransactionResponse> {
-    return this.client.post(`/api/v2/drops/${encodeURIComponent(slug)}/publish`)
+    return this.client.post(`/api/v2/drops/${pathSegment(slug)}/publish`)
   }
 
   async buildUnpublishTransaction(
     slug: string,
   ): Promise<DropTransactionResponse> {
-    return this.client.post(
-      `/api/v2/drops/${encodeURIComponent(slug)}/unpublish`,
-    )
+    return this.client.post(`/api/v2/drops/${pathSegment(slug)}/unpublish`)
   }
 
   /**
@@ -757,9 +768,7 @@ export class DropsAPI {
   async uploadMetadataToIpfs(
     slug: string,
   ): Promise<DropMetadataUploadResponse> {
-    return this.client.post(
-      `/api/v2/drops/${encodeURIComponent(slug)}/metadata/ipfs`,
-    )
+    return this.client.post(`/api/v2/drops/${pathSegment(slug)}/metadata/ipfs`)
   }
 
   async getMetadataIpfsProgress(
@@ -767,7 +776,7 @@ export class DropsAPI {
     workflowExecutionId: string,
   ): Promise<DropMetadataUploadProgressResponse> {
     return this.client.get(
-      `/api/v2/drops/${encodeURIComponent(slug)}/metadata/ipfs/${encodeURIComponent(workflowExecutionId)}`,
+      `/api/v2/drops/${pathSegment(slug)}/metadata/ipfs/${pathSegment(workflowExecutionId)}`,
     )
   }
 
@@ -810,9 +819,7 @@ export class DropsAPI {
    * the file with `uploadToContext`; the token is not passed to a later call.
    */
   async createManifestUpload(slug: string): Promise<UploadContext> {
-    return this.client.post(
-      `/api/v2/drops/${encodeURIComponent(slug)}/items/manifest`,
-    )
+    return this.client.post(`/api/v2/drops/${pathSegment(slug)}/items/manifest`)
   }
 
   /**
@@ -826,7 +833,7 @@ export class DropsAPI {
     request: UploadDropItemMediaRequest,
   ): Promise<UploadContext[]> {
     return this.client.post(
-      `/api/v2/drops/${encodeURIComponent(slug)}/items/media`,
+      `/api/v2/drops/${pathSegment(slug)}/items/media`,
       request,
     )
   }
@@ -843,7 +850,7 @@ export class DropsAPI {
     request: SaveDropItemMediaBatchRequest,
   ): Promise<SaveDropItemMediaResponse> {
     return this.client.post(
-      `/api/v2/drops/${encodeURIComponent(slug)}/items/media/save-batch`,
+      `/api/v2/drops/${pathSegment(slug)}/items/media/save-batch`,
       request,
     )
   }
@@ -999,7 +1006,7 @@ class NFTsAPI {
     identifier: string,
   ): Promise<{ nft: NFT }> {
     return this.client.get(
-      `/api/v2/chain/${chain}/contract/${address}/nfts/${identifier}`,
+      `/api/v2/chain/${pathSegment(chain)}/contract/${pathSegment(address)}/nfts/${pathSegment(identifier)}`,
     )
   }
 
@@ -1007,7 +1014,7 @@ class NFTsAPI {
     slug: string,
     options?: { limit?: number; next?: string; traits?: TraitFilter[] },
   ): Promise<{ nfts: NFT[]; next?: string }> {
-    return this.client.get(`/api/v2/collection/${slug}/nfts`, {
+    return this.client.get(`/api/v2/collection/${pathSegment(slug)}/nfts`, {
       limit: options?.limit,
       next: options?.next,
       traits: encodeTraits(options?.traits),
@@ -1019,10 +1026,13 @@ class NFTsAPI {
     address: string,
     options?: { limit?: number; next?: string },
   ): Promise<{ nfts: NFT[]; next?: string }> {
-    return this.client.get(`/api/v2/chain/${chain}/contract/${address}/nfts`, {
-      limit: options?.limit,
-      next: options?.next,
-    })
+    return this.client.get(
+      `/api/v2/chain/${pathSegment(chain)}/contract/${pathSegment(address)}/nfts`,
+      {
+        limit: options?.limit,
+        next: options?.next,
+      },
+    )
   }
 
   /**
@@ -1036,12 +1046,15 @@ class NFTsAPI {
     address: string,
     options?: { limit?: number; next?: string; includeAutoHidden?: boolean },
   ): Promise<{ nfts: NFT[]; next?: string }> {
-    return this.client.get(`/api/v2/chain/${chain}/account/${address}/nfts`, {
-      limit: options?.limit,
-      next: options?.next,
-      // Param keys go out verbatim, so spell the wire name here.
-      include_auto_hidden: options?.includeAutoHidden,
-    })
+    return this.client.get(
+      `/api/v2/chain/${pathSegment(chain)}/account/${pathSegment(address)}/nfts`,
+      {
+        limit: options?.limit,
+        next: options?.next,
+        // Param keys go out verbatim, so spell the wire name here.
+        include_auto_hidden: options?.includeAutoHidden,
+      },
+    )
   }
 
   /**
@@ -1063,7 +1076,7 @@ class NFTsAPI {
       next?: string
     },
   ): Promise<StandardizedNftListResponse> {
-    return this.client.get(`/api/v2/nfts/group/${group}`, {
+    return this.client.get(`/api/v2/nfts/group/${pathSegment(group)}`, {
       collection_slugs: options?.collectionSlugs,
       query: options?.query,
       is_listed: options?.isListed,
@@ -1089,7 +1102,7 @@ class NFTsAPI {
       collectionSlugs?: string[]
     },
   ): Promise<StandardizedNftFacetsResponse> {
-    return this.client.get(`/api/v2/nfts/group/${group}/facets`, {
+    return this.client.get(`/api/v2/nfts/group/${pathSegment(group)}/facets`, {
       facet_types: options?.facetTypes,
       collection_slugs: options?.collectionSlugs,
       ...groupFacetFilterParams(options),
@@ -1102,12 +1115,14 @@ class NFTsAPI {
     identifier: string,
   ): Promise<void> {
     await this.client.post(
-      `/api/v2/chain/${chain}/contract/${address}/nfts/${identifier}/refresh`,
+      `/api/v2/chain/${pathSegment(chain)}/contract/${pathSegment(address)}/nfts/${pathSegment(identifier)}/refresh`,
     )
   }
 
   async getContract(chain: Chain, address: string): Promise<Contract> {
-    return this.client.get(`/api/v2/chain/${chain}/contract/${address}`)
+    return this.client.get(
+      `/api/v2/chain/${pathSegment(chain)}/contract/${pathSegment(address)}`,
+    )
   }
 
   async validateMetadata(
@@ -1121,7 +1136,7 @@ class NFTsAPI {
       params.ignoreCachedItemUrls = true
     }
     return this.client.post(
-      `/api/v2/chain/${chain}/contract/${address}/nfts/${identifier}/validate-metadata`,
+      `/api/v2/chain/${pathSegment(chain)}/contract/${pathSegment(address)}/nfts/${pathSegment(identifier)}/validate-metadata`,
       undefined,
       params,
     )
@@ -1133,7 +1148,7 @@ class NFTsAPI {
     identifier: string,
   ): Promise<CollectionDetailedResponse> {
     return this.client.get(
-      `/api/v2/chain/${chain}/contract/${address}/nfts/${identifier}/collection`,
+      `/api/v2/chain/${pathSegment(chain)}/contract/${pathSegment(address)}/nfts/${pathSegment(identifier)}/collection`,
     )
   }
 
@@ -1142,7 +1157,9 @@ class NFTsAPI {
     address: string,
     tokenId: string,
   ): Promise<AssetMetadataResponse> {
-    return this.client.get(`/api/v2/metadata/${chain}/${address}/${tokenId}`)
+    return this.client.get(
+      `/api/v2/metadata/${pathSegment(chain)}/${pathSegment(address)}/${pathSegment(tokenId)}`,
+    )
   }
 
   async batch(request: BatchNftsRequest): Promise<NftBatchResponse> {
@@ -1156,7 +1173,7 @@ class NFTsAPI {
     options?: { limit?: number; next?: string },
   ): Promise<OwnersPaginatedResponse> {
     return this.client.get(
-      `/api/v2/chain/${chain}/contract/${address}/nfts/${identifier}/owners`,
+      `/api/v2/chain/${pathSegment(chain)}/contract/${pathSegment(address)}/nfts/${pathSegment(identifier)}/owners`,
       { limit: options?.limit, next: options?.next },
     )
   }
@@ -1167,7 +1184,7 @@ class NFTsAPI {
     identifier: string,
   ): Promise<NftAnalyticsResponse> {
     return this.client.get(
-      `/api/v2/chain/${chain}/contract/${address}/nfts/${identifier}/analytics`,
+      `/api/v2/chain/${pathSegment(chain)}/contract/${pathSegment(address)}/nfts/${pathSegment(identifier)}/analytics`,
     )
   }
 }
@@ -1180,7 +1197,7 @@ class ListingsAPI {
     options?: { limit?: number; next?: string; maker?: string },
   ): Promise<{ listings: Listing[]; next?: string }> {
     return this.client.get(
-      `/api/v2/listings/collection/${collectionSlug}/all`,
+      `/api/v2/listings/collection/${pathSegment(collectionSlug)}/all`,
       {
         limit: options?.limit,
         next: options?.next,
@@ -1194,7 +1211,7 @@ class ListingsAPI {
     options?: { limit?: number; next?: string; traits?: TraitFilter[] },
   ): Promise<{ listings: Listing[]; next?: string }> {
     return this.client.get(
-      `/api/v2/listings/collection/${collectionSlug}/best`,
+      `/api/v2/listings/collection/${pathSegment(collectionSlug)}/best`,
       {
         limit: options?.limit,
         next: options?.next,
@@ -1205,7 +1222,7 @@ class ListingsAPI {
 
   async bestForNFT(collectionSlug: string, tokenId: string): Promise<Listing> {
     return this.client.get(
-      `/api/v2/listings/collection/${collectionSlug}/nfts/${tokenId}/best`,
+      `/api/v2/listings/collection/${pathSegment(collectionSlug)}/nfts/${pathSegment(tokenId)}/best`,
     )
   }
 
@@ -1284,21 +1301,27 @@ class OffersAPI {
     collectionSlug: string,
     options?: { limit?: number; next?: string; maker?: string },
   ): Promise<{ offers: Offer[]; next?: string }> {
-    return this.client.get(`/api/v2/offers/collection/${collectionSlug}/all`, {
-      limit: options?.limit,
-      next: options?.next,
-      maker: options?.maker,
-    })
+    return this.client.get(
+      `/api/v2/offers/collection/${pathSegment(collectionSlug)}/all`,
+      {
+        limit: options?.limit,
+        next: options?.next,
+        maker: options?.maker,
+      },
+    )
   }
 
   async collection(
     collectionSlug: string,
     options?: { limit?: number; next?: string },
   ): Promise<{ offers: Offer[]; next?: string }> {
-    return this.client.get(`/api/v2/offers/collection/${collectionSlug}`, {
-      limit: options?.limit,
-      next: options?.next,
-    })
+    return this.client.get(
+      `/api/v2/offers/collection/${pathSegment(collectionSlug)}`,
+      {
+        limit: options?.limit,
+        next: options?.next,
+      },
+    )
   }
 
   async byNFT(
@@ -1307,14 +1330,14 @@ class OffersAPI {
     options?: { limit?: number; next?: string },
   ): Promise<{ offers: Offer[]; next?: string }> {
     return this.client.get(
-      `/api/v2/offers/collection/${collectionSlug}/nfts/${tokenId}`,
+      `/api/v2/offers/collection/${pathSegment(collectionSlug)}/nfts/${pathSegment(tokenId)}`,
       { limit: options?.limit, next: options?.next },
     )
   }
 
   async bestForNFT(collectionSlug: string, tokenId: string): Promise<Offer> {
     return this.client.get(
-      `/api/v2/offers/collection/${collectionSlug}/nfts/${tokenId}/best`,
+      `/api/v2/offers/collection/${pathSegment(collectionSlug)}/nfts/${pathSegment(tokenId)}/best`,
     )
   }
 
@@ -1328,7 +1351,7 @@ class OffersAPI {
     },
   ): Promise<{ offers: Offer[]; next?: string }> {
     return this.client.get(
-      `/api/v2/offers/collection/${collectionSlug}/traits`,
+      `/api/v2/offers/collection/${pathSegment(collectionSlug)}/traits`,
       {
         type: options.type,
         value: options.value,
@@ -1396,7 +1419,7 @@ class OrdersAPI {
     request: CreateCancelOrderActionsRequest,
   ): Promise<CreateCancelOrderActionsResponse> {
     return this.client.post(
-      `/api/v2/orders/chain/${chain}/protocol/${protocolAddress}/${orderIdentifier}/cancel/actions`,
+      `/api/v2/orders/chain/${pathSegment(chain)}/protocol/${pathSegment(protocolAddress)}/${pathSegment(orderIdentifier)}/cancel/actions`,
       request,
     )
   }
@@ -1436,7 +1459,7 @@ class EventsAPI {
       chain?: Chain
     },
   ): Promise<{ asset_events: AssetEvent[]; next?: string }> {
-    return this.client.get(`/api/v2/events/accounts/${address}`, {
+    return this.client.get(`/api/v2/events/accounts/${pathSegment(address)}`, {
       event_type: options?.eventType,
       limit: options?.limit,
       next: options?.next,
@@ -1453,12 +1476,15 @@ class EventsAPI {
       traits?: TraitFilter[]
     },
   ): Promise<{ asset_events: AssetEvent[]; next?: string }> {
-    return this.client.get(`/api/v2/events/collection/${collectionSlug}`, {
-      event_type: options?.eventType,
-      limit: options?.limit,
-      next: options?.next,
-      traits: encodeTraits(options?.traits),
-    })
+    return this.client.get(
+      `/api/v2/events/collection/${pathSegment(collectionSlug)}`,
+      {
+        event_type: options?.eventType,
+        limit: options?.limit,
+        next: options?.next,
+        traits: encodeTraits(options?.traits),
+      },
+    )
   }
 
   async byNFT(
@@ -1472,7 +1498,7 @@ class EventsAPI {
     },
   ): Promise<{ asset_events: AssetEvent[]; next?: string }> {
     return this.client.get(
-      `/api/v2/events/chain/${chain}/contract/${address}/nfts/${identifier}`,
+      `/api/v2/events/chain/${pathSegment(chain)}/contract/${pathSegment(address)}/nfts/${pathSegment(identifier)}`,
       {
         event_type: options?.eventType,
         limit: options?.limit,
@@ -1486,18 +1512,18 @@ class AccountsAPI {
   constructor(private client: OpenSeaClient) {}
 
   async get(address: string): Promise<Account> {
-    return this.client.get(`/api/v2/accounts/${address}`)
+    return this.client.get(`/api/v2/accounts/${pathSegment(address)}`)
   }
 
   async makePrivate(wallet: string): Promise<WalletVisibilityResponse> {
     return this.client.put(
-      `/api/v2/accounts/wallets/${encodeURIComponent(wallet)}/private`,
+      `/api/v2/accounts/wallets/${pathSegment(wallet)}/private`,
     )
   }
 
   async makePublic(wallet: string): Promise<WalletVisibilityResponse> {
     return this.client.delete(
-      `/api/v2/accounts/wallets/${encodeURIComponent(wallet)}/private`,
+      `/api/v2/accounts/wallets/${pathSegment(wallet)}/private`,
     )
   }
 
@@ -1505,7 +1531,7 @@ class AccountsAPI {
     addressOrUsername: string,
   ): Promise<AgentProfileRelationshipsResponse> {
     return this.client.get(
-      `/api/v2/accounts/${encodeURIComponent(addressOrUsername)}/agent-relationships`,
+      `/api/v2/accounts/${pathSegment(addressOrUsername)}/agent-relationships`,
     )
   }
 
@@ -1520,7 +1546,7 @@ class AccountsAPI {
       next?: string
     },
   ): Promise<TokenBalancePaginatedResponse> {
-    return this.client.get(`/api/v2/account/${address}/tokens`, {
+    return this.client.get(`/api/v2/account/${pathSegment(address)}/tokens`, {
       chains: options?.chains?.join(","),
       limit: options?.limit,
       sort_by: options?.sortBy,
@@ -1531,40 +1557,51 @@ class AccountsAPI {
   }
 
   async resolve(identifier: string): Promise<AccountResolveResponse> {
-    return this.client.get(`/api/v2/accounts/resolve/${identifier}`)
+    return this.client.get(
+      `/api/v2/accounts/resolve/${pathSegment(identifier)}`,
+    )
   }
 
   async portfolio(
     address: string,
     options?: { timeframe?: "HOUR" | "DAY" | "WEEK" | "MONTH" },
   ): Promise<PortfolioStatsResponse> {
-    return this.client.get(`/api/v2/account/${address}/portfolio`, {
-      timeframe: options?.timeframe,
-    })
+    return this.client.get(
+      `/api/v2/account/${pathSegment(address)}/portfolio`,
+      {
+        timeframe: options?.timeframe,
+      },
+    )
   }
 
   async portfolioHistory(
     address: string,
     options?: { timeframe?: "HOUR" | "DAY" | "WEEK" | "MONTH" },
   ): Promise<PortfolioHistoryResponse> {
-    return this.client.get(`/api/v2/account/${address}/portfolio/history`, {
-      timeframe: options?.timeframe,
-    })
+    return this.client.get(
+      `/api/v2/account/${pathSegment(address)}/portfolio/history`,
+      {
+        timeframe: options?.timeframe,
+      },
+    )
   }
 
   async pnl(address: string): Promise<WalletPnlResponse> {
-    return this.client.get(`/api/v2/account/${address}/pnl`)
+    return this.client.get(`/api/v2/account/${pathSegment(address)}/pnl`)
   }
 
   async closedPositions(
     address: string,
     options?: { sortBy?: string; limit?: number; next?: string },
   ): Promise<ClosedPositionsResponse> {
-    return this.client.get(`/api/v2/account/${address}/pnl/closed-positions`, {
-      sort_by: options?.sortBy,
-      limit: options?.limit,
-      next: options?.next,
-    })
+    return this.client.get(
+      `/api/v2/account/${pathSegment(address)}/pnl/closed-positions`,
+      {
+        sort_by: options?.sortBy,
+        limit: options?.limit,
+        next: options?.next,
+      },
+    )
   }
 
   async tokenTransfers(
@@ -1576,12 +1613,15 @@ class AccountsAPI {
       next?: string
     },
   ): Promise<PositionTokenTransfersResponse> {
-    return this.client.get(`/api/v2/account/${address}/pnl/token-transfers`, {
-      contract_address: options.contractAddress,
-      chain: options.chain,
-      limit: options.limit,
-      next: options.next,
-    })
+    return this.client.get(
+      `/api/v2/account/${pathSegment(address)}/pnl/token-transfers`,
+      {
+        contract_address: options.contractAddress,
+        chain: options.chain,
+        limit: options.limit,
+        next: options.next,
+      },
+    )
   }
 
   async profileOffers(
@@ -1595,7 +1635,7 @@ class AccountsAPI {
       sortDirection?: "asc" | "desc"
     },
   ): Promise<{ offers: Offer[]; next?: string }> {
-    return this.client.get(`/api/v2/account/${address}/offers`, {
+    return this.client.get(`/api/v2/account/${pathSegment(address)}/offers`, {
       after: options?.after,
       limit: options?.limit,
       collection_slugs: options?.collectionSlugs?.join(","),
@@ -1616,14 +1656,17 @@ class AccountsAPI {
       sortDirection?: "asc" | "desc"
     },
   ): Promise<{ offers: Offer[]; next?: string }> {
-    return this.client.get(`/api/v2/account/${address}/offers_received`, {
-      after: options?.after,
-      limit: options?.limit,
-      collection_slugs: options?.collectionSlugs?.join(","),
-      chains: options?.chains?.join(","),
-      sort_by: options?.sortBy,
-      sort_direction: options?.sortDirection,
-    })
+    return this.client.get(
+      `/api/v2/account/${pathSegment(address)}/offers_received`,
+      {
+        after: options?.after,
+        limit: options?.limit,
+        collection_slugs: options?.collectionSlugs?.join(","),
+        chains: options?.chains?.join(","),
+        sort_by: options?.sortBy,
+        sort_direction: options?.sortDirection,
+      },
+    )
   }
 
   async profileListings(
@@ -1637,7 +1680,7 @@ class AccountsAPI {
       sortDirection?: "asc" | "desc"
     },
   ): Promise<{ listings: Listing[]; next?: string }> {
-    return this.client.get(`/api/v2/account/${address}/listings`, {
+    return this.client.get(`/api/v2/account/${pathSegment(address)}/listings`, {
       after: options?.after,
       limit: options?.limit,
       collection_slugs: options?.collectionSlugs?.join(","),
@@ -1657,13 +1700,16 @@ class AccountsAPI {
       chains?: string[]
     },
   ): Promise<{ nfts: NFT[]; next?: string }> {
-    return this.client.get(`/api/v2/account/${address}/favorites`, {
-      after: options?.after,
-      limit: options?.limit,
-      sort_by: options?.sortBy,
-      sort_direction: options?.sortDirection,
-      chains: options?.chains?.join(","),
-    })
+    return this.client.get(
+      `/api/v2/account/${pathSegment(address)}/favorites`,
+      {
+        after: options?.after,
+        limit: options?.limit,
+        sort_by: options?.sortBy,
+        sort_direction: options?.sortDirection,
+        chains: options?.chains?.join(","),
+      },
+    )
   }
 
   async profileCollections(
@@ -1674,11 +1720,14 @@ class AccountsAPI {
       chains?: string[]
     },
   ): Promise<ProfileCollectionsResponse> {
-    return this.client.get(`/api/v2/account/${address}/collections`, {
-      after: options?.after,
-      limit: options?.limit,
-      chains: options?.chains?.join(","),
-    })
+    return this.client.get(
+      `/api/v2/account/${pathSegment(address)}/collections`,
+      {
+        after: options?.after,
+        limit: options?.limit,
+        chains: options?.chains?.join(","),
+      },
+    )
   }
 }
 
@@ -1780,7 +1829,7 @@ class AgentAPI {
     addressOrUsername: string,
   ): Promise<AgentProfileRelationshipsResponse> {
     return this.client.get(
-      `/api/v2/accounts/${encodeURIComponent(addressOrUsername)}/agent-relationships`,
+      `/api/v2/accounts/${pathSegment(addressOrUsername)}/agent-relationships`,
     )
   }
 }
@@ -1817,12 +1866,14 @@ class TokensAPI {
   }
 
   async get(chain: Chain, address: string): Promise<TokenDetails> {
-    return this.client.get(`/api/v2/chain/${chain}/token/${address}`)
+    return this.client.get(
+      `/api/v2/chain/${pathSegment(chain)}/token/${pathSegment(address)}`,
+    )
   }
 
   async paymentToken(chain: Chain, address: string): Promise<PaymentToken> {
     return this.client.get(
-      `/api/v2/chain/${encodeURIComponent(chain)}/payment_token/${encodeURIComponent(address)}`,
+      `/api/v2/chain/${pathSegment(chain)}/payment_token/${pathSegment(address)}`,
     )
   }
 
@@ -1840,7 +1891,7 @@ class TokensAPI {
     },
   ): Promise<PriceHistoryResponse> {
     return this.client.get(
-      `/api/v2/chain/${chain}/token/${address}/price_history`,
+      `/api/v2/chain/${pathSegment(chain)}/token/${pathSegment(address)}/price_history`,
       {
         start_time: options.startTime,
         end_time: options.endTime,
@@ -1859,12 +1910,15 @@ class TokensAPI {
       fillTimeWindow?: boolean
     },
   ): Promise<OhlcvResponse> {
-    return this.client.get(`/api/v2/chain/${chain}/token/${address}/ohlcv`, {
-      start_time: options.startTime,
-      bucket_size: options.bucketSize,
-      end_time: options.endTime,
-      fill_time_window: options.fillTimeWindow,
-    })
+    return this.client.get(
+      `/api/v2/chain/${pathSegment(chain)}/token/${pathSegment(address)}/ohlcv`,
+      {
+        start_time: options.startTime,
+        bucket_size: options.bucketSize,
+        end_time: options.endTime,
+        fill_time_window: options.fillTimeWindow,
+      },
+    )
   }
 
   async activity(
@@ -1872,10 +1926,13 @@ class TokensAPI {
     address: string,
     options?: { limit?: number; next?: string },
   ): Promise<TokenSwapActivityPaginatedResponse> {
-    return this.client.get(`/api/v2/chain/${chain}/token/${address}/activity`, {
-      limit: options?.limit,
-      cursor: options?.next,
-    })
+    return this.client.get(
+      `/api/v2/chain/${pathSegment(chain)}/token/${pathSegment(address)}/activity`,
+      {
+        limit: options?.limit,
+        cursor: options?.next,
+      },
+    )
   }
 
   async activityStats(
@@ -1884,7 +1941,7 @@ class TokensAPI {
     options?: { windows?: TokenActivityStatsWindow[] },
   ): Promise<TokenActivityStatsResponse> {
     return this.client.get(
-      `/api/v2/chain/${chain}/token/${address}/activity/stats`,
+      `/api/v2/chain/${pathSegment(chain)}/token/${pathSegment(address)}/activity/stats`,
       { windows: options?.windows?.join(",") },
     )
   }
@@ -1899,13 +1956,16 @@ class TokensAPI {
       next?: string
     },
   ): Promise<TokenAccountActivityPaginatedResponse> {
-    return this.client.get(`/api/v2/account/${address}/token-activity`, {
-      chains: options?.chains?.join(","),
-      tokens: options?.tokens?.join(","),
-      type: options?.type?.join(","),
-      limit: options?.limit,
-      next: options?.next,
-    })
+    return this.client.get(
+      `/api/v2/account/${pathSegment(address)}/token-activity`,
+      {
+        chains: options?.chains?.join(","),
+        tokens: options?.tokens?.join(","),
+        type: options?.type?.join(","),
+        limit: options?.limit,
+        next: options?.next,
+      },
+    )
   }
 
   async holders(
@@ -1918,12 +1978,15 @@ class TokensAPI {
       sortDirection?: "asc" | "desc"
     },
   ): Promise<TokenHoldersResponse> {
-    return this.client.get(`/api/v2/chain/${chain}/token/${address}/holders`, {
-      limit: options?.limit,
-      cursor: options?.next,
-      sort_by: options?.sortBy,
-      sort_direction: options?.sortDirection,
-    })
+    return this.client.get(
+      `/api/v2/chain/${pathSegment(chain)}/token/${pathSegment(address)}/holders`,
+      {
+        limit: options?.limit,
+        cursor: options?.next,
+        sort_by: options?.sortBy,
+        sort_direction: options?.sortDirection,
+      },
+    )
   }
 
   async liquidityPools(
@@ -1932,7 +1995,7 @@ class TokensAPI {
     options?: { limit?: number },
   ): Promise<TokenLiquidityPoolsResponse> {
     return this.client.get(
-      `/api/v2/chain/${chain}/token/${address}/liquidity-pools`,
+      `/api/v2/chain/${pathSegment(chain)}/token/${pathSegment(address)}/liquidity-pools`,
       {
         limit: options?.limit,
       },
@@ -2133,7 +2196,7 @@ class ToolsAPI {
     toolId: string,
   ): Promise<RegisteredToolResponse> {
     return this.client.get<RegisteredToolResponse>(
-      `/api/v2/tools/${registryChain}/${registryAddr}/${toolId}`,
+      `/api/v2/tools/${pathSegment(registryChain)}/${pathSegment(registryAddr)}/${pathSegment(toolId)}`,
     )
   }
 
@@ -2170,7 +2233,7 @@ class ToolsAPI {
     },
   ): Promise<ToolActivityPaginatedResponse> {
     return this.client.get<ToolActivityPaginatedResponse>(
-      `/api/v2/tools/${registryChain}/${registryAddr}/${toolId}/activity`,
+      `/api/v2/tools/${pathSegment(registryChain)}/${pathSegment(registryAddr)}/${pathSegment(toolId)}/activity`,
       {
         include_creator_payments: options?.includeCreatorPayments,
         limit: options?.limit,

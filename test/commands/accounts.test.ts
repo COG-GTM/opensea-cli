@@ -3,7 +3,12 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { accountsCommand } from "../../src/commands/accounts.js"
-import { type CommandTestContext, createCommandTestContext } from "../mocks.js"
+import {
+  type CommandTestContext,
+  createCommandTestContext,
+  requestedPaths,
+  resolveAllRequests,
+} from "../mocks.js"
 
 function writeTempJson(data: unknown): string {
   const dir = mkdtempSync(join(tmpdir(), "cli-test-"))
@@ -213,5 +218,92 @@ describe("accountsCommand", () => {
       "/api/v2/watchlist",
       body,
     )
+  })
+})
+
+describe("accountsCommand path arguments", () => {
+  let ctx: CommandTestContext
+
+  beforeEach(() => {
+    ctx = createCommandTestContext()
+    resolveAllRequests(ctx.mockClient)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it.each<[string[], string]>([
+    [["get", "0xa/1"], "GET /api/v2/accounts/0xa%2F1"],
+    [["make-private", "0xa/1"], "PUT /api/v2/accounts/wallets/0xa%2F1/private"],
+    [
+      ["make-public", "0xa/1"],
+      "DELETE /api/v2/accounts/wallets/0xa%2F1/private",
+    ],
+    [
+      ["agent-relationships", "alice/1"],
+      "GET /api/v2/accounts/alice%2F1/agent-relationships",
+    ],
+    [["tokens", "0xa/1"], "GET /api/v2/account/0xa%2F1/tokens"],
+    [["resolve", "alice/1"], "GET /api/v2/accounts/resolve/alice%2F1"],
+    [["portfolio", "0xa/1"], "GET /api/v2/account/0xa%2F1/portfolio"],
+    [
+      ["portfolio-history", "0xa/1"],
+      "GET /api/v2/account/0xa%2F1/portfolio/history",
+    ],
+    [["offers", "0xa/1"], "GET /api/v2/account/0xa%2F1/offers"],
+    [
+      ["offers-received", "0xa/1"],
+      "GET /api/v2/account/0xa%2F1/offers_received",
+    ],
+    [["listings", "0xa/1"], "GET /api/v2/account/0xa%2F1/listings"],
+    [["favorites", "0xa/1"], "GET /api/v2/account/0xa%2F1/favorites"],
+    [["collections", "0xa/1"], "GET /api/v2/account/0xa%2F1/collections"],
+    [["pnl", "0xa/1"], "GET /api/v2/account/0xa%2F1/pnl"],
+    [
+      ["closed-positions", "0xa/1"],
+      "GET /api/v2/account/0xa%2F1/pnl/closed-positions",
+    ],
+    [
+      [
+        "token-transfers",
+        "0xa/1",
+        "--contract-address",
+        "0xc",
+        "--chain",
+        "base",
+      ],
+      "GET /api/v2/account/0xa%2F1/pnl/token-transfers",
+    ],
+    [
+      ["relationship", "alice/1"],
+      "GET /api/v2/accounts/alice%2F1/relationship",
+    ],
+    [["followers", "alice/1"], "GET /api/v2/accounts/alice%2F1/followers"],
+    [["following", "alice/1"], "GET /api/v2/accounts/alice%2F1/following"],
+    [["follow", "alice/1"], "POST /api/v2/accounts/alice%2F1/follow"],
+    [["unfollow", "alice/1"], "DELETE /api/v2/accounts/alice%2F1/follow"],
+    [["watch", "alice/1"], "POST /api/v2/accounts/alice%2F1/watch"],
+    [["unwatch", "alice/1"], "DELETE /api/v2/accounts/alice%2F1/watch"],
+    [
+      ["token-watchlist", "0xa/1"],
+      "GET /api/v2/account/0xa%2F1/token_watchlist",
+    ],
+    [
+      ["perpetual-watchlist", "0xa/1"],
+      "GET /api/v2/account/0xa%2F1/perpetual_watchlist",
+    ],
+  ])("%j encodes the path argument", async (argv, request) => {
+    const cmd = accountsCommand(ctx.getClient, ctx.getFormat)
+    await cmd.parseAsync(argv, { from: "user" })
+    expect(requestedPaths(ctx.mockClient)).toEqual([request])
+  })
+
+  it.each([".", ".."])("rejects %j before any request", async segment => {
+    const cmd = accountsCommand(ctx.getClient, ctx.getFormat)
+    await expect(
+      cmd.parseAsync(["follow", segment], { from: "user" }),
+    ).rejects.toThrow(`Invalid path segment: "${segment}"`)
+    expect(requestedPaths(ctx.mockClient)).toEqual([])
   })
 })

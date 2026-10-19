@@ -76,4 +76,23 @@ describe("resolveQuantity", () => {
     expect(result).toBe("1000")
     expect(mockGet).toHaveBeenCalledWith("/api/v2/chain/ethereum/token/0xToken")
   })
+
+  it("encodes the chain and token address in the token lookup path", async () => {
+    mockGet.mockResolvedValue({ decimals: 6 })
+
+    await resolveQuantity(client, "base/1", "0xToken/2", "0.001")
+    expect(mockGet.mock.calls).toEqual([
+      ["/api/v2/chain/base%2F1/token/0xToken%2F2"],
+    ])
+  })
+
+  it.each([
+    ".",
+    "..",
+  ])("rejects %j as the token address before any request", async segment => {
+    await expect(
+      resolveQuantity(client, "ethereum", segment, "0.001"),
+    ).rejects.toThrow(`Invalid path segment: "${segment}"`)
+    expect(mockGet).not.toHaveBeenCalled()
+  })
 })

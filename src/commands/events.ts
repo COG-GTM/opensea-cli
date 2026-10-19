@@ -8,6 +8,7 @@ import {
   addTraitsOption,
   parseIntOption,
   parseTraitsOption,
+  pathSegment,
 } from "../parse.js"
 
 export function eventsCommand(
@@ -88,7 +89,7 @@ export function eventsCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/events/accounts/${address}`,
+        `/api/v2/events/accounts/${pathSegment(address)}`,
         {
           event_type: options.eventType,
           chain: options.chain,
@@ -121,7 +122,7 @@ export function eventsCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/events/collection/${slug}`,
+        `/api/v2/events/collection/${pathSegment(slug)}`,
         {
           event_type: options.eventType,
           limit: parseIntOption(options.limit, "--limit"),
@@ -157,7 +158,7 @@ export function eventsCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/events/chain/${chain}/contract/${contract}/nfts/${tokenId}`,
+        `/api/v2/events/chain/${pathSegment(chain)}/contract/${pathSegment(contract)}/nfts/${pathSegment(tokenId)}`,
         {
           event_type: options.eventType,
           limit: parseIntOption(options.limit, "--limit"),

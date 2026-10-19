@@ -2,7 +2,7 @@ import { Command } from "commander"
 import type { OpenSeaClient } from "../client.js"
 import type { OutputFormat } from "../output.js"
 import { outputGet } from "../output.js"
-import { addPaginationOptions, parseIntOption } from "../parse.js"
+import { addPaginationOptions, parseIntOption, pathSegment } from "../parse.js"
 
 export function tokenGroupsCommand(
   getClient: () => OpenSeaClient,
@@ -33,7 +33,11 @@ export function tokenGroupsCommand(
     .argument("<slug>", "Token group slug (e.g. 'eth')")
     .action(async (slug: string) => {
       const client = getClient()
-      await outputGet(client, getFormat(), `/api/v2/token-groups/${slug}`)
+      await outputGet(
+        client,
+        getFormat(),
+        `/api/v2/token-groups/${pathSegment(slug)}`,
+      )
     })
 
   return cmd

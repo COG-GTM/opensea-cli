@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { tokensCommand } from "../../src/commands/tokens.js"
-import { type CommandTestContext, createCommandTestContext } from "../mocks.js"
+import {
+  type CommandTestContext,
+  createCommandTestContext,
+  requestedPaths,
+  resolveAllRequests,
+} from "../mocks.js"
 
 describe("tokensCommand", () => {
   let ctx: CommandTestContext
@@ -188,5 +193,74 @@ describe("tokensCommand", () => {
       "/api/v2/chain/ethereum/token/0xabc/liquidity-pools",
       expect.objectContaining({ limit: 30 }),
     )
+  })
+})
+
+describe("tokensCommand path arguments", () => {
+  let ctx: CommandTestContext
+
+  beforeEach(() => {
+    ctx = createCommandTestContext()
+    resolveAllRequests(ctx.mockClient)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it.each<[string[], string]>([
+    [["get", "base/1", "0xt/2"], "GET /api/v2/chain/base%2F1/token/0xt%2F2"],
+    [
+      ["payment-token", "base/1", "0xt/2"],
+      "GET /api/v2/chain/base%2F1/payment_token/0xt%2F2",
+    ],
+    [
+      ["price-history", "base/1", "0xt/2", "--start-time", "2026-01-01"],
+      "GET /api/v2/chain/base%2F1/token/0xt%2F2/price_history",
+    ],
+    [
+      [
+        "ohlcv",
+        "base/1",
+        "0xt/2",
+        "--start-time",
+        "2026-01-01",
+        "--bucket-size",
+        "1h",
+      ],
+      "GET /api/v2/chain/base%2F1/token/0xt%2F2/ohlcv",
+    ],
+    [
+      ["activity", "base/1", "0xt/2"],
+      "GET /api/v2/chain/base%2F1/token/0xt%2F2/activity",
+    ],
+    [
+      ["activity-stats", "base/1", "0xt/2"],
+      "GET /api/v2/chain/base%2F1/token/0xt%2F2/activity/stats",
+    ],
+    [
+      ["account-activity", "0xa/1"],
+      "GET /api/v2/account/0xa%2F1/token-activity",
+    ],
+    [
+      ["holders", "base/1", "0xt/2"],
+      "GET /api/v2/chain/base%2F1/token/0xt%2F2/holders",
+    ],
+    [
+      ["liquidity-pools", "base/1", "0xt/2"],
+      "GET /api/v2/chain/base%2F1/token/0xt%2F2/liquidity-pools",
+    ],
+  ])("%j encodes every path argument", async (argv, request) => {
+    const cmd = tokensCommand(ctx.getClient, ctx.getFormat)
+    await cmd.parseAsync(argv, { from: "user" })
+    expect(requestedPaths(ctx.mockClient)).toEqual([request])
+  })
+
+  it.each([".", ".."])("rejects %j before any request", async segment => {
+    const cmd = tokensCommand(ctx.getClient, ctx.getFormat)
+    await expect(
+      cmd.parseAsync(["get", segment, "0xt"], { from: "user" }),
+    ).rejects.toThrow(`Invalid path segment: "${segment}"`)
+    expect(requestedPaths(ctx.mockClient)).toEqual([])
   })
 })

@@ -44,7 +44,7 @@ export function offersCommand(
         await outputGet(
           client,
           getFormat(),
-          `/api/v2/offers/collection/${collection}/all`,
+          `/api/v2/offers/collection/${pathSegment(collection)}/all`,
           {
             limit: parseIntOption(options.limit, "--limit"),
             next: options.next,
@@ -70,7 +70,7 @@ export function offersCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/offers/collection/${collection}/nfts/${tokenId}`,
+        `/api/v2/offers/collection/${pathSegment(collection)}/nfts/${pathSegment(tokenId)}`,
         {
           limit: parseIntOption(options.limit, "--limit"),
           next: options.next,
@@ -90,7 +90,7 @@ export function offersCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/offers/collection/${collection}`,
+        `/api/v2/offers/collection/${pathSegment(collection)}`,
         {
           limit: parseIntOption(options.limit, "--limit"),
           next: options.next,
@@ -109,7 +109,7 @@ export function offersCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/offers/collection/${collection}/nfts/${tokenId}/best`,
+        `/api/v2/offers/collection/${pathSegment(collection)}/nfts/${pathSegment(tokenId)}/best`,
       )
     })
 
@@ -134,7 +134,7 @@ export function offersCommand(
       await outputGet(
         client,
         getFormat(),
-        `/api/v2/offers/collection/${collection}/traits`,
+        `/api/v2/offers/collection/${pathSegment(collection)}/traits`,
         {
           type: options.type,
           value: options.value,

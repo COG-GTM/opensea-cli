@@ -4,7 +4,12 @@ import { join } from "node:path"
 import type { EvmWalletAdapter } from "@opensea/wallet-adapters"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { collectionsCommand } from "../../src/commands/collections.js"
-import { type CommandTestContext, createCommandTestContext } from "../mocks.js"
+import {
+  type CommandTestContext,
+  createCommandTestContext,
+  requestedPaths,
+  resolveAllRequests,
+} from "../mocks.js"
 
 const walletMock = vi.hoisted(() => ({ createWalletFromEnv: vi.fn() }))
 
@@ -562,5 +567,91 @@ describe("collectionsCommand", () => {
     expect(ctx.consoleSpy).toHaveBeenCalledWith(
       JSON.stringify({ success: true }, null, 2),
     )
+  })
+})
+
+describe("collectionsCommand path arguments", () => {
+  const BODY = "<body>"
+  let ctx: CommandTestContext
+  let body: string
+
+  beforeEach(() => {
+    ctx = createCommandTestContext()
+    resolveAllRequests(ctx.mockClient)
+    body = writeTempJson({})
+  })
+
+  afterEach(() => {
+    rmSync(body, { force: true })
+    vi.restoreAllMocks()
+  })
+
+  it.each<[string[], string]>([
+    [["get", "cats/1"], "GET /api/v2/collections/cats%2F1"],
+    [["stats", "cats/1"], "GET /api/v2/collections/cats%2F1/stats"],
+    [["traits", "cats/1"], "GET /api/v2/traits/cats%2F1"],
+    [["trait-floors", "cats/1"], "GET /api/v2/traits/cats%2F1/floors"],
+    [
+      ["pfp-profiles", "cats/1"],
+      "GET /api/v2/collections/cats%2F1/pfp-profiles",
+    ],
+    [
+      ["offer-aggregates", "cats/1"],
+      "GET /api/v2/collections/cats%2F1/offer_aggregates",
+    ],
+    [["holders", "cats/1"], "GET /api/v2/collections/cats%2F1/holders"],
+    [
+      ["floor-prices", "cats/1"],
+      "GET /api/v2/collections/cats%2F1/floor_prices",
+    ],
+    [
+      ["modify", "cats/1", "--body", BODY],
+      "PATCH /api/v2/collections/cats%2F1",
+    ],
+    [
+      ["update-metadata", "cats/1", "--body", BODY],
+      "PATCH /api/v2/collections/cats%2F1/metadata",
+    ],
+    [["get-metadata", "cats/1"], "GET /api/v2/collections/cats%2F1/metadata"],
+    [
+      ["set-visibility", "cats/1", "--hidden", "true"],
+      "PATCH /api/v2/collections/cats%2F1/visibility",
+    ],
+    [
+      ["upload-image", "cats/1", "logo/2", "--content-type", "image/png"],
+      "POST /api/v2/collections/cats%2F1/images/logo%2F2?content_type=image%2Fpng",
+    ],
+    [
+      ["upload-page-media", "cats/1", "hero/2", "--content-type", "image/png"],
+      "POST /api/v2/collections/cats%2F1/media/hero%2F2?content_type=image%2Fpng",
+    ],
+    [
+      ["set-pricing-currency", "cats/1", "--stablecoin", "true"],
+      "POST /api/v2/collections/cats%2F1/pricing_currency",
+    ],
+    [
+      ["creator-fee-enforcement", "cats/1"],
+      "GET /api/v2/collections/cats%2F1/creator_fee_enforcement",
+    ],
+    [
+      ["set-creator-fee-enforcement", "cats/1", "--enabled", "true"],
+      "POST /api/v2/collections/cats%2F1/creator_fee_enforcement",
+    ],
+    [["refresh", "cats/1"], "POST /api/v2/collections/cats%2F1/refresh"],
+  ])("%j encodes every path argument", async (argv, request) => {
+    const cmd = collectionsCommand(ctx.getClient, ctx.getFormat)
+    await cmd.parseAsync(
+      argv.map(arg => (arg === BODY ? body : arg)),
+      { from: "user" },
+    )
+    expect(requestedPaths(ctx.mockClient)).toEqual([request])
+  })
+
+  it.each([".", ".."])("rejects %j before any request", async segment => {
+    const cmd = collectionsCommand(ctx.getClient, ctx.getFormat)
+    await expect(
+      cmd.parseAsync(["modify", segment, "--body", body], { from: "user" }),
+    ).rejects.toThrow(`Invalid path segment: "${segment}"`)
+    expect(requestedPaths(ctx.mockClient)).toEqual([])
   })
 })
