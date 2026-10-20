@@ -1,5 +1,13 @@
 # @opensea/cli
 
+## 3.0.1
+
+### Patch Changes
+
+- 58234c4: Update the README banner to the new OpenSea brand, and use the new brand blue on the CLI's login result page.
+- Updated dependencies [58234c4]
+  - @opensea/sdk@12.13.1
+
 ## 3.0.0
 
 ### Major Changes

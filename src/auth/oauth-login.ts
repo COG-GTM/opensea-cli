@@ -136,7 +136,7 @@ function waitForCode(
 }
 
 function renderResultPage(message: string, ok: boolean): string {
-  const color = ok ? "#2081e2" : "#e23b2b"
+  const color = ok ? "#0086ff" : "#e23b2b"
   return `<!doctype html><html><head><meta charset="utf-8"><title>OpenSea CLI</title></head><body style="font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f5f7fb"><div style="text-align:center"><h2 style="color:${color}">OpenSea</h2><p>${escapeHtml(message)}</p></div></body></html>`
 }
 
