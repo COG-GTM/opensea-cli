@@ -16,6 +16,7 @@ const client = new OpenSeaCLI({ apiKey: process.env.OPENSEA_API_KEY })
 |---|---|---|---|
 | `apiKey` | `string` | *required* | OpenSea API key |
 | `baseUrl` | `string` | `https://api.opensea.io` | API base URL override |
+| `allowUntrustedBaseUrl` | `boolean` | `false` | Sign transactions built by a `baseUrl` other than `https://api.opensea.io`. Off by default, so swap, drop and collection sends refuse such transactions |
 | `chain` | `string` | `"ethereum"` | Default chain |
 | `timeout` | `number` | `30000` | Request timeout in milliseconds |
 | `verbose` | `boolean` | `false` | Log requests and responses to stderr |

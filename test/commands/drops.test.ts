@@ -247,7 +247,17 @@ describe("dropsCommand", () => {
 
       const cmd = dropsCommand(ctx.getClient, ctx.getFormat)
       await cmd.parseAsync(
-        ["mint", "cool-cats", "--minter", MINTER, "--quantity", "2", "--send"],
+        [
+          "mint",
+          "cool-cats",
+          "--minter",
+          MINTER,
+          "--quantity",
+          "2",
+          "--max-value",
+          "10000000000000000",
+          "--send",
+        ],
         { from: "user" },
       )
 
@@ -271,6 +281,72 @@ describe("dropsCommand", () => {
       expect(stderr.mock.calls.flat().join("\n")).toContain(
         `Minting 2 from ${payer} to minter ${MINTER}`,
       )
+    })
+
+    it("refuses a mint that pays more than --max-value", async () => {
+      vi.spyOn(console, "error").mockImplementation(() => {})
+      ctx.mockClient.post.mockResolvedValue(mintTx)
+      const wallet = evmWallet("0x9999999999999999999999999999999999999999")
+      walletMock.createWalletFromEnv.mockReturnValue(wallet)
+
+      const cmd = dropsCommand(ctx.getClient, ctx.getFormat)
+      await expect(
+        cmd.parseAsync(
+          [
+            "mint",
+            "cool-cats",
+            "--minter",
+            MINTER,
+            "--max-value",
+            "9999999999999999",
+            "--send",
+          ],
+          { from: "user" },
+        ),
+      ).rejects.toThrow(
+        "sends 10000000000000000 wei, more than the expected 9999999999999999 wei",
+      )
+      expect(wallet.sendTransaction).not.toHaveBeenCalled()
+    })
+
+    it("refuses a paid mint without --max-value", async () => {
+      vi.spyOn(console, "error").mockImplementation(() => {})
+      ctx.mockClient.post.mockResolvedValue(mintTx)
+      const wallet = evmWallet("0x9999999999999999999999999999999999999999")
+      walletMock.createWalletFromEnv.mockReturnValue(wallet)
+
+      const cmd = dropsCommand(ctx.getClient, ctx.getFormat)
+      await expect(
+        cmd.parseAsync(["mint", "cool-cats", "--minter", MINTER, "--send"], {
+          from: "user",
+        }),
+      ).rejects.toThrow("more than the expected 0 wei")
+      expect(wallet.sendTransaction).not.toHaveBeenCalled()
+    })
+
+    it("refuses a mint built by an untrusted --base-url", async () => {
+      vi.spyOn(console, "error").mockImplementation(() => {})
+      ctx.mockClient.getBaseUrl.mockReturnValue("https://mallory.example")
+      ctx.mockClient.post.mockResolvedValue(mintTx)
+      const wallet = evmWallet("0x9999999999999999999999999999999999999999")
+      walletMock.createWalletFromEnv.mockReturnValue(wallet)
+
+      const cmd = dropsCommand(ctx.getClient, ctx.getFormat)
+      await expect(
+        cmd.parseAsync(
+          [
+            "mint",
+            "cool-cats",
+            "--minter",
+            MINTER,
+            "--max-value",
+            "10000000000000000",
+            "--send",
+          ],
+          { from: "user" },
+        ),
+      ).rejects.toThrow("--allow-untrusted-base-url")
+      expect(wallet.sendTransaction).not.toHaveBeenCalled()
     })
 
     it("rejects a Solana wallet before building the transaction", async () => {
@@ -623,6 +699,20 @@ describe("dropsCommand", () => {
       await expect(
         cmd.parseAsync([...deployArgs, "--send"], { from: "user" }),
       ).rejects.toThrow("Drop transaction has an invalid value: lots")
+
+      expect(wallet.sendTransaction).not.toHaveBeenCalled()
+    })
+
+    it("deploy --send refuses a transaction for another chain than --chain", async () => {
+      vi.spyOn(console, "error").mockImplementation(() => {})
+      ctx.mockClient.post.mockResolvedValue({ ...deployTx, chain: "ethereum" })
+      const wallet = evmWallet(OWNER)
+      walletMock.createWalletFromEnv.mockReturnValue(wallet)
+
+      const cmd = dropsCommand(ctx.getClient, ctx.getFormat)
+      await expect(
+        cmd.parseAsync([...deployArgs, "--send"], { from: "user" }),
+      ).rejects.toThrow("for chain ethereum, not base")
 
       expect(wallet.sendTransaction).not.toHaveBeenCalled()
     })

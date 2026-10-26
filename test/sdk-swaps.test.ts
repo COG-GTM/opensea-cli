@@ -15,6 +15,10 @@ vi.mock("../src/client.js", async importOriginal => {
   MockOpenSeaClient.prototype.post = vi.fn()
   MockOpenSeaClient.prototype.getDefaultChain = vi.fn(() => "ethereum")
   MockOpenSeaClient.prototype.getApiKeyPrefix = vi.fn(() => "test...")
+  MockOpenSeaClient.prototype.getBaseUrl = vi.fn(
+    () => "https://api.opensea.io",
+  )
+  MockOpenSeaClient.prototype.allowsUntrustedBaseUrl = vi.fn(() => false)
   return {
     OpenSeaClient: MockOpenSeaClient,
     OpenSeaAPIError: actual.OpenSeaAPIError,
@@ -39,6 +43,8 @@ function createMockWallet(
     sendTransaction: vi.fn().mockResolvedValue({ hash: "0xabc123" }),
   }
 }
+
+const NATIVE = "0x0000000000000000000000000000000000000000"
 
 describe("SwapsAPI.execute", () => {
   let sdk: OpenSeaCLI
@@ -104,7 +110,7 @@ describe("SwapsAPI.execute", () => {
     const results = await sdk.swaps.execute(
       {
         fromChain: "ethereum",
-        fromAddress: "0xTokenA",
+        fromAddress: NATIVE,
         toChain: "ethereum",
         toAddress: "0xTokenB",
         quantity: "1000000",
@@ -357,5 +363,174 @@ describe("SwapsAPI.execute", () => {
     // failure surfaces later as a missing sendTransaction, after a network round trip.
     expect(mockGet).not.toHaveBeenCalled()
     expect(svm.getAddress).not.toHaveBeenCalled()
+  })
+
+  describe("refuses quote transactions that do not match the request", () => {
+    const nativeSwap = {
+      fromChain: "ethereum",
+      fromAddress: NATIVE,
+      toChain: "base",
+      toAddress: "0xTokenB",
+      quantity: "1000",
+    }
+
+    it("a native value above the requested quantity", async () => {
+      const wallet = createMockWallet()
+      mockGet.mockResolvedValue({
+        transactions: [
+          { to: "0xRouter", data: "0x", value: "1001", chain: "ethereum" },
+        ],
+      })
+
+      await expect(sdk.swaps.execute(nativeSwap, wallet)).rejects.toThrow(
+        "more than the requested quantity 1000",
+      )
+      expect(wallet.sendTransaction).not.toHaveBeenCalled()
+    })
+
+    it("native values that add up to more than the quantity, before sending any", async () => {
+      const wallet = createMockWallet()
+      mockGet.mockResolvedValue({
+        transactions: [
+          { to: "0xRouter", data: "0x", value: "600", chain: "ethereum" },
+          { to: "0xRouter", data: "0x", value: "0x258", chain: "ethereum" },
+        ],
+      })
+
+      await expect(sdk.swaps.execute(nativeSwap, wallet)).rejects.toThrow(
+        "send 1200 wei of native currency",
+      )
+      expect(wallet.sendTransaction).not.toHaveBeenCalled()
+    })
+
+    it("a native value when the source token is not native", async () => {
+      const wallet = createMockWallet()
+      mockGet.mockResolvedValue({
+        transactions: [
+          { to: "0xRouter", data: "0x", value: "1", chain: "ethereum" },
+        ],
+      })
+
+      await expect(
+        sdk.swaps.execute(
+          { ...nativeSwap, fromAddress: "0xTokenA", quantity: "1000000" },
+          wallet,
+        ),
+      ).rejects.toThrow("the swap spends token 0xTokenA")
+      expect(wallet.sendTransaction).not.toHaveBeenCalled()
+    })
+
+    it("a native value on the destination chain", async () => {
+      const wallet = createMockWallet()
+      mockGet.mockResolvedValue({
+        transactions: [
+          { to: "0xRouter", data: "0x", value: "1", chain: "base" },
+        ],
+      })
+
+      await expect(sdk.swaps.execute(nativeSwap, wallet)).rejects.toThrow(
+        "native currency only on ethereum",
+      )
+      expect(wallet.sendTransaction).not.toHaveBeenCalled()
+    })
+
+    it("a transaction on a chain that is neither from nor to chain", async () => {
+      const wallet = createMockWallet()
+      mockGet.mockResolvedValue({
+        transactions: [
+          { to: "0xRouter", data: "0x", value: "0", chain: "ethereum" },
+          { to: "0xRouter", data: "0x", value: "0", chain: "polygon" },
+        ],
+      })
+
+      await expect(sdk.swaps.execute(nativeSwap, wallet)).rejects.toThrow(
+        "transaction for chain polygon",
+      )
+      expect(wallet.sendTransaction).not.toHaveBeenCalled()
+    })
+
+    it("a malformed value", async () => {
+      const wallet = createMockWallet()
+      mockGet.mockResolvedValue({
+        transactions: [
+          { to: "0xRouter", data: "0x", value: "-5", chain: "ethereum" },
+        ],
+      })
+
+      await expect(sdk.swaps.execute(nativeSwap, wallet)).rejects.toThrow(
+        "Swap transaction has an invalid value: -5",
+      )
+      expect(wallet.sendTransaction).not.toHaveBeenCalled()
+    })
+
+    it("sends value up to the quantity on the from chain", async () => {
+      const wallet = createMockWallet()
+      mockGet.mockResolvedValue({
+        transactions: [
+          { to: "0xRouter", data: "0x", value: "0x3e8", chain: "ethereum" },
+          { to: "0xBridge", data: "0x", value: "0", chain: "base" },
+        ],
+      })
+
+      await sdk.swaps.execute(nativeSwap, wallet)
+      expect(wallet.sendTransaction).toHaveBeenNthCalledWith(1, {
+        to: "0xRouter",
+        data: "0x",
+        value: "1000",
+        chainId: 1,
+      })
+      expect(wallet.sendTransaction).toHaveBeenNthCalledWith(2, {
+        to: "0xBridge",
+        data: "0x",
+        value: "0",
+        chainId: 8453,
+      })
+    })
+  })
+
+  describe("API base URL trust", () => {
+    const swap = {
+      fromChain: "ethereum",
+      fromAddress: "0xTokenA",
+      toChain: "ethereum",
+      toAddress: "0xTokenB",
+      quantity: "1000000",
+    }
+
+    it("refuses to sign quotes from a base URL other than api.opensea.io", async () => {
+      const wallet = createMockWallet()
+      vi.mocked(OpenSeaClient.prototype.getBaseUrl).mockReturnValueOnce(
+        "https://mallory.example",
+      )
+      mockGet.mockResolvedValue({
+        transactions: [
+          { to: "0xRouter", data: "0x", value: "0", chain: "ethereum" },
+        ],
+      })
+
+      await expect(sdk.swaps.execute(swap, wallet)).rejects.toThrow(
+        "Refusing to sign swap transactions built by https://mallory.example",
+      )
+      expect(mockGet).not.toHaveBeenCalled()
+      expect(wallet.sendTransaction).not.toHaveBeenCalled()
+    })
+
+    it("signs them with allowUntrustedBaseUrl", async () => {
+      const wallet = createMockWallet()
+      vi.mocked(OpenSeaClient.prototype.getBaseUrl).mockReturnValueOnce(
+        "https://staging.example",
+      )
+      vi.mocked(
+        OpenSeaClient.prototype.allowsUntrustedBaseUrl,
+      ).mockReturnValueOnce(true)
+      mockGet.mockResolvedValue({
+        transactions: [
+          { to: "0xRouter", data: "0x", value: "0", chain: "ethereum" },
+        ],
+      })
+
+      await sdk.swaps.execute(swap, wallet)
+      expect(wallet.sendTransaction).toHaveBeenCalledTimes(1)
+    })
   })
 })

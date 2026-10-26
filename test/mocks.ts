@@ -9,6 +9,8 @@ export type MockClient = {
   patch: Mock
   delete: Mock
   getApiKeyPrefix: Mock
+  getBaseUrl: Mock
+  allowsUntrustedBaseUrl: Mock
 }
 
 export type CommandTestContext = {
@@ -26,6 +28,8 @@ export function createCommandTestContext(): CommandTestContext {
     patch: vi.fn(),
     delete: vi.fn(),
     getApiKeyPrefix: vi.fn().mockReturnValue("test..."),
+    getBaseUrl: vi.fn().mockReturnValue("https://api.opensea.io"),
+    allowsUntrustedBaseUrl: vi.fn().mockReturnValue(false),
   }
   const getClient = () => mockClient as unknown as OpenSeaClient
   const getFormat = () => "json" as OutputFormat

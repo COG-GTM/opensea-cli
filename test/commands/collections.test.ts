@@ -464,6 +464,54 @@ describe("collectionsCommand", () => {
       )
     })
 
+    it("--send refuses a transaction that sends value, before sending any", async () => {
+      vi.spyOn(console, "error").mockImplementation(() => {})
+      ctx.mockClient.post.mockResolvedValue({
+        transactions: [enforcementTx, { ...enforcementTx, value: "1" }],
+      })
+      const wallet = evmWallet(OWNER)
+      walletMock.createWalletFromEnv.mockReturnValue(wallet)
+
+      const cmd = collectionsCommand(ctx.getClient, ctx.getFormat)
+      await expect(
+        cmd.parseAsync(
+          [
+            "set-creator-fee-enforcement",
+            "cool-cats",
+            "--enabled",
+            "true",
+            "--send",
+          ],
+          { from: "user" },
+        ),
+      ).rejects.toThrow("more than the expected 0 wei")
+      expect(wallet.sendTransaction).not.toHaveBeenCalled()
+    })
+
+    it("--send refuses transactions on different chains, before sending any", async () => {
+      vi.spyOn(console, "error").mockImplementation(() => {})
+      ctx.mockClient.post.mockResolvedValue({
+        transactions: [enforcementTx, { ...enforcementTx, chain: "ethereum" }],
+      })
+      const wallet = evmWallet(OWNER)
+      walletMock.createWalletFromEnv.mockReturnValue(wallet)
+
+      const cmd = collectionsCommand(ctx.getClient, ctx.getFormat)
+      await expect(
+        cmd.parseAsync(
+          [
+            "set-creator-fee-enforcement",
+            "cool-cats",
+            "--enabled",
+            "true",
+            "--send",
+          ],
+          { from: "user" },
+        ),
+      ).rejects.toThrow("for chain ethereum, not base")
+      expect(wallet.sendTransaction).not.toHaveBeenCalled()
+    })
+
     it("--send reports each sent hash, so a later failure does not hide earlier ones", async () => {
       const stderr = vi.spyOn(console, "error").mockImplementation(() => {})
       ctx.mockClient.post.mockResolvedValue({

@@ -107,6 +107,7 @@ export class OpenSeaClient {
   private apiKey: string
   private authToken: string | undefined
   private baseUrl: string
+  private allowUntrustedBaseUrl: boolean
   private defaultChain: string
   private timeoutMs: number
   private verbose: boolean
@@ -120,6 +121,7 @@ export class OpenSeaClient {
     this.apiKey = config.apiKey
     this.authToken = config.authToken
     this.baseUrl = config.baseUrl ?? DEFAULT_BASE_URL
+    this.allowUntrustedBaseUrl = config.allowUntrustedBaseUrl ?? false
     this.defaultChain = config.chain ?? "ethereum"
     this.timeoutMs = config.timeout ?? DEFAULT_TIMEOUT_MS
     this.verbose = config.verbose ?? false
@@ -295,6 +297,15 @@ export class OpenSeaClient {
 
   getDefaultChain(): string {
     return this.defaultChain
+  }
+
+  getBaseUrl(): string {
+    return this.baseUrl
+  }
+
+  /** Whether `allowUntrustedBaseUrl` was set. */
+  allowsUntrustedBaseUrl(): boolean {
+    return this.allowUntrustedBaseUrl
   }
 
   getApiKeyPrefix(): string {
