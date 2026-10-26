@@ -11,7 +11,11 @@ import {
   warnIfInlinePrivateKey,
 } from "../auth/private-key.js"
 import { refreshStoredToken } from "../auth/refresh.js"
-import { loginWithSiwe, refreshSiweSession } from "../auth/siwe-login.js"
+import {
+  assertTrustedSiweOrigin,
+  loginWithSiwe,
+  refreshSiweSession,
+} from "../auth/siwe-login.js"
 import {
   clearTokens,
   listTokens,
@@ -381,6 +385,9 @@ export function authCommand(
             "Stored SIWE login cannot manage its token. Run `opensea login --private-key` again.",
           )
         }
+        // The session cookie can mint new tokens, and only OpenSea can revoke
+        // the PAT, so never send it to (or trust a reply from) another host.
+        assertTrustedSiweOrigin(baseUrl)
         const refreshedCookie = await refreshSiweSession(
           baseUrl,
           token.sessionCookie,
@@ -394,6 +401,7 @@ export function authCommand(
           {
             method: "DELETE",
             headers: { Cookie: refreshedCookie },
+            redirect: "error",
           },
         )
       } else {

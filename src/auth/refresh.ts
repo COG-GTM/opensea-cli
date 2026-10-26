@@ -171,7 +171,9 @@ export async function refreshForRequest(
  * refresh sends the stored refresh token, which outlives the access token, so
  * it only happens when both the API and the auth server are OpenSea's own:
  * any `--base-url` outside the trusted API origins, or any `--auth-base-url`,
- * turns it off. `opensea auth refresh` still honors those overrides.
+ * turns it off. `opensea auth refresh` still honors an `--auth-base-url` for
+ * OAuth sessions, but a private-key (SIWE) session only ever exchanges its
+ * scoped token with a trusted API origin.
  */
 export function canRefreshAutomatically(options: {
   apiBaseUrl: string

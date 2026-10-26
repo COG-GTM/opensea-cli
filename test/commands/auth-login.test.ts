@@ -175,6 +175,9 @@ describe("auth login", () => {
       subjectToken: "pat-value",
       subjectTokenType: "ACCESS_TOKEN",
     })
+    // Credential-bearing requests must not follow a redirect off OpenSea.
+    expect(createInit.redirect).toBe("error")
+    expect(exchangeInit.redirect).toBe("error")
     expect(saveToken).toHaveBeenCalledWith(
       expect.objectContaining({
         accessToken: "wallet-jwt",
@@ -240,6 +243,7 @@ describe("auth login", () => {
         headers: {
           Cookie: "access_token=session-access; refresh_token=session-refresh",
         },
+        redirect: "error",
       },
     ])
     expect(saveToken).not.toHaveBeenCalled()
@@ -300,6 +304,7 @@ describe("auth login", () => {
         headers: {
           Cookie: "access_token=session-access; refresh_token=session-refresh",
         },
+        redirect: "error",
       },
     ])
     expect(fetchSpy.mock.calls[1]).toEqual([
@@ -309,6 +314,7 @@ describe("auth login", () => {
         headers: {
           Cookie: "access_token=rotated-access; refresh_token=rotated-refresh",
         },
+        redirect: "error",
       },
     ])
     expect(saveToken).toHaveBeenCalledWith(
@@ -317,6 +323,107 @@ describe("auth login", () => {
           "access_token=rotated-access; refresh_token=rotated-refresh",
       }),
     )
+    expect(removeToken).toHaveBeenCalledWith(
+      "0xfba662e1a8e91a350702cf3b87d0c2d2fb4ba57f",
+    )
+  })
+
+  it.each([
+    "https://evil.com",
+    "http://api.opensea.io",
+    "https://api.opensea.io.evil.com",
+  ])("never sends the stored session to an untrusted --base-url (%s) on revoke", async baseUrl => {
+    loadCurrentToken.mockReturnValue({
+      accessToken: "wallet-jwt",
+      refreshToken: "pat-value",
+      scopedTokenId: "381768924447939181",
+      sessionCookie:
+        "access_token=session-access; refresh_token=session-refresh",
+      expiresAt: "2030-01-01T00:00:00.000Z",
+      requestedScopes: ["write:wallets"],
+      scopes: ["write:wallets"],
+      address: "0xfba662e1a8e91a350702cf3b87d0c2d2fb4ba57f",
+      authMethod: "siwe",
+    })
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response(null, { status: 204 }))
+
+    await expect(
+      authCommand(
+        () => baseUrl,
+        createCommandTestContext().getFormat,
+      ).parseAsync(["revoke"], { from: "user" }),
+    ).rejects.toThrow(`Untrusted SIWE API origin: ${baseUrl}`)
+
+    expect(fetchSpy).not.toHaveBeenCalled()
+    expect(saveToken).not.toHaveBeenCalled()
+    expect(removeToken).not.toHaveBeenCalled()
+  })
+
+  it("never sends the stored PAT to an untrusted --base-url on refresh", async () => {
+    loadCurrentToken.mockReturnValue({
+      accessToken: "wallet-jwt",
+      refreshToken: "pat-value",
+      scopedTokenId: "381768924447939181",
+      sessionCookie:
+        "access_token=session-access; refresh_token=session-refresh",
+      expiresAt: "2030-01-01T00:00:00.000Z",
+      requestedScopes: ["write:wallets"],
+      scopes: ["write:wallets"],
+      address: "0xfba662e1a8e91a350702cf3b87d0c2d2fb4ba57f",
+      authMethod: "siwe",
+    })
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ accessToken: "attacker-jwt" }), {
+        status: 200,
+      }),
+    )
+
+    await expect(
+      authCommand(
+        () => "https://evil.com",
+        createCommandTestContext().getFormat,
+      ).parseAsync(["refresh"], { from: "user" }),
+    ).rejects.toThrow("Untrusted SIWE API origin: https://evil.com")
+
+    expect(fetchSpy).not.toHaveBeenCalled()
+    expect(saveToken).not.toHaveBeenCalled()
+    expect(removeToken).not.toHaveBeenCalled()
+  })
+
+  it("revokes against the testnets API when --base-url points at it", async () => {
+    loadCurrentToken.mockReturnValue({
+      accessToken: "wallet-jwt",
+      refreshToken: "pat-value",
+      scopedTokenId: "381768924447939181",
+      sessionCookie:
+        "access_token=session-access; refresh_token=session-refresh",
+      expiresAt: "2030-01-01T00:00:00.000Z",
+      requestedScopes: ["write:wallets"],
+      scopes: ["write:wallets"],
+      address: "0xfba662e1a8e91a350702cf3b87d0c2d2fb4ba57f",
+      authMethod: "siwe",
+    })
+    const refreshHeaders = new Headers()
+    refreshHeaders.append("set-cookie", "access_token=rotated-access; Path=/")
+    refreshHeaders.append("set-cookie", "refresh_token=rotated-refresh; Path=/")
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response("{}", { status: 200, headers: refreshHeaders }),
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+
+    await authCommand(
+      () => "https://testnets-api.opensea.io",
+      createCommandTestContext().getFormat,
+    ).parseAsync(["revoke"], { from: "user" })
+
+    expect(fetchSpy.mock.calls.map(call => call[0])).toEqual([
+      "https://testnets-api.opensea.io/api/v2/auth/session/refresh",
+      "https://testnets-api.opensea.io/api/v2/auth/tokens/381768924447939181",
+    ])
     expect(removeToken).toHaveBeenCalledWith(
       "0xfba662e1a8e91a350702cf3b87d0c2d2fb4ba57f",
     )

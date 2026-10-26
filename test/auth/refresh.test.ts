@@ -121,6 +121,18 @@ describe("refreshStoredToken", () => {
       "Token request failed (503): Service Unavailable",
     )
   })
+
+  it("never sends a SIWE scoped token to an untrusted API origin", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch")
+
+    await expect(
+      refreshStoredToken(siweToken, {
+        ...options,
+        apiBaseUrl: "https://proxy.example.com",
+      }),
+    ).rejects.toThrow("Untrusted SIWE API origin: https://proxy.example.com")
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
 })
 
 describe("refreshForRequest", () => {
