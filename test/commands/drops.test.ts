@@ -273,6 +273,25 @@ describe("dropsCommand", () => {
       )
     })
 
+    it("sends a Katana mint with chain ID 747474", async () => {
+      vi.spyOn(console, "error").mockImplementation(() => {})
+      ctx.mockClient.post.mockResolvedValue({ ...mintTx, chain: "katana" })
+      const wallet = evmWallet(MINTER)
+      walletMock.createWalletFromEnv.mockReturnValue(wallet)
+
+      const cmd = dropsCommand(ctx.getClient, ctx.getFormat)
+      await cmd.parseAsync(["mint", "cool-cats", "--minter", MINTER, "--send"], {
+        from: "user",
+      })
+
+      expect(wallet.sendTransaction).toHaveBeenCalledWith({
+        to: mintTx.to,
+        data: mintTx.data,
+        value: "10000000000000000",
+        chainId: 747474,
+      })
+    })
+
     it("rejects a Solana wallet before building the transaction", async () => {
       const stderr = vi.spyOn(console, "error").mockImplementation(() => {})
       vi.spyOn(process, "exit").mockImplementation(() => {
