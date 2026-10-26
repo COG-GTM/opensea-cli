@@ -168,6 +168,17 @@ describe("subcommand --chain through the full program", () => {
       expect(requestedUrl().searchParams.get("chain")).toBe("base")
     })
 
+    it.each([
+      ["after the subcommand", ["collections", "list", "--chain", "linea"]],
+      ["before the subcommand", ["--chain", "linea", "collections", "list"]],
+    ])("passes --chain linea %s", async (_, argv) => {
+      respondWith({})
+
+      await run(...argv)
+
+      expect(requestedUrl().searchParams.get("chain")).toBe("linea")
+    })
+
     it("does not send the program's default chain as a filter", async () => {
       respondWith({})
 

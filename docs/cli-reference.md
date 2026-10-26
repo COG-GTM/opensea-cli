@@ -21,6 +21,10 @@ filter you leave out filters nothing, and a command that needs a chain fails
 without one. `events list` has no chain filter and refuses a `--chain` you
 pass; use `events by-account --chain` or `events by-nft <chain>` instead.
 
+Chain names accepted by `--chain` for wallet and transaction commands come
+from `CHAIN_IDS` (for example `ethereum`, `base`, `linea`); a numeric chain ID
+also works. For example, `opensea collections list --chain linea`.
+
 ## Authentication
 
 ```bash

@@ -132,6 +132,8 @@ This table is a high-level summary; run `opensea --help` for the current command
 
 Global options: `--api-key`, `--chain` (default: ethereum), `--format` (json/table/toon), `--base-url`. A `--chain` you pass, before or after the subcommand, reaches subcommands that take `--chain`; the `ethereum` default never does.
 
+Known chain names include `ethereum`, `base`, `polygon`, `linea` and the other OpenSea EVM chains, e.g. `opensea collections list --chain linea`.
+
 ## Programmatic SDK
 
 ```typescript
