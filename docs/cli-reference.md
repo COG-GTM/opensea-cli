@@ -21,6 +21,15 @@ filter you leave out filters nothing, and a command that needs a chain fails
 without one. `events list` has no chain filter and refuses a `--chain` you
 pass; use `events by-account --chain` or `events by-nft <chain>` instead.
 
+Chain names map to EVM chain ids through `CHAIN_IDS` (`src/wallet/chains.generated.ts`) for wallet and
+transaction commands, and are passed to the API as-is for read commands. For example, Mantle is
+`mantle` (chain id 5000):
+
+```bash
+opensea collections list --chain mantle --limit 5
+opensea drops deploy --chain mantle --name A --symbol A --drop-type seadrop_v2_erc1155_self_mint --token-type erc1155_clone --sender 0x...
+```
+
 ## Authentication
 
 ```bash

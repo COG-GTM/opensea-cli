@@ -85,6 +85,14 @@ describe("subcommand --chain through the full program", () => {
       expect(requestedBody()).toMatchObject({ chain: "base", sender: SENDER })
     })
 
+    it("sends --chain mantle to the deploy endpoint", async () => {
+      respondWith({ ...deployTx, chain: "mantle" })
+
+      await run("drops", "deploy", ...deployArgs, "--chain", "mantle")
+
+      expect(requestedBody()).toMatchObject({ chain: "mantle" })
+    })
+
     it("accepts --chain placed before the subcommand", async () => {
       respondWith(deployTx)
 
@@ -166,6 +174,18 @@ describe("subcommand --chain through the full program", () => {
 
       expect(requestedUrl().pathname).toBe(path)
       expect(requestedUrl().searchParams.get("chain")).toBe("base")
+    })
+
+    it.each([
+      ["after the subcommand", ["collections", "list", "--chain", "mantle"]],
+      ["before the subcommand", ["--chain", "mantle", "collections", "list"]],
+    ])("--chain mantle reaches collections list (%s)", async (_, argv) => {
+      respondWith({})
+
+      await run(...argv)
+
+      expect(requestedUrl().pathname).toBe("/api/v2/collections")
+      expect(requestedUrl().searchParams.get("chain")).toBe("mantle")
     })
 
     it("does not send the program's default chain as a filter", async () => {

@@ -132,6 +132,13 @@ This table is a high-level summary; run `opensea --help` for the current command
 
 Global options: `--api-key`, `--chain` (default: ethereum), `--format` (json/table/toon), `--base-url`. A `--chain` you pass, before or after the subcommand, reaches subcommands that take `--chain`; the `ethereum` default never does.
 
+`--chain` takes any chain slug the OpenSea API knows, for example `base`, `polygon` or `mantle` (Mantle, chain id 5000):
+
+```bash
+opensea collections list --chain mantle --limit 5
+opensea --chain mantle events by-account 0x1111111111111111111111111111111111111111
+```
+
 ## Programmatic SDK
 
 ```typescript
