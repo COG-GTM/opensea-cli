@@ -401,6 +401,7 @@ export function authCommand(
           {
             method: "DELETE",
             headers: { Cookie: refreshedCookie },
+            redirect: "error",
           },
         )
       } else {

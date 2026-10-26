@@ -4,6 +4,7 @@ import {
   isTrustedSiweOrigin,
   refreshSiweSession,
   sessionCookie,
+  UntrustedSiweOriginError,
 } from "../../src/auth/siwe-login.js"
 
 describe("sessionCookie", () => {
@@ -64,6 +65,12 @@ describe("trusted SIWE origins", () => {
   it("refreshSiweSession refuses an untrusted origin before sending the cookie", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch")
 
+    await expect(
+      refreshSiweSession(
+        "https://evil.com",
+        "access_token=a; refresh_token=r",
+      ),
+    ).rejects.toBeInstanceOf(UntrustedSiweOriginError)
     await expect(
       refreshSiweSession(
         "https://evil.com",

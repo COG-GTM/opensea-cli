@@ -4,6 +4,7 @@ import {
   EXIT_AUTH_ERROR,
 } from "./api-error.js"
 import { TokenRefreshError } from "./auth/refresh.js"
+import { UntrustedSiweOriginError } from "./auth/siwe-login.js"
 import { OpenSeaAPIError } from "./client.js"
 import { stringifyJson } from "./output.js"
 import { createProgram } from "./program.js"
@@ -25,6 +26,12 @@ async function main() {
           { error: error.name, status: error.status, message: error.message },
           2,
         ),
+      )
+      process.exit(EXIT_AUTH_ERROR)
+    }
+    if (error instanceof UntrustedSiweOriginError) {
+      console.error(
+        stringifyJson({ error: error.name, message: error.message }, 2),
       )
       process.exit(EXIT_AUTH_ERROR)
     }

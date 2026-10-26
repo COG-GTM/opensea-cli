@@ -175,6 +175,9 @@ describe("auth login", () => {
       subjectToken: "pat-value",
       subjectTokenType: "ACCESS_TOKEN",
     })
+    // Credential-bearing requests must not follow a redirect off OpenSea.
+    expect(createInit.redirect).toBe("error")
+    expect(exchangeInit.redirect).toBe("error")
     expect(saveToken).toHaveBeenCalledWith(
       expect.objectContaining({
         accessToken: "wallet-jwt",
@@ -240,6 +243,7 @@ describe("auth login", () => {
         headers: {
           Cookie: "access_token=session-access; refresh_token=session-refresh",
         },
+        redirect: "error",
       },
     ])
     expect(saveToken).not.toHaveBeenCalled()
@@ -300,6 +304,7 @@ describe("auth login", () => {
         headers: {
           Cookie: "access_token=session-access; refresh_token=session-refresh",
         },
+        redirect: "error",
       },
     ])
     expect(fetchSpy.mock.calls[1]).toEqual([
@@ -309,6 +314,7 @@ describe("auth login", () => {
         headers: {
           Cookie: "access_token=rotated-access; refresh_token=rotated-refresh",
         },
+        redirect: "error",
       },
     ])
     expect(saveToken).toHaveBeenCalledWith(

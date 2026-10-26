@@ -27,12 +27,20 @@ export function isTrustedSiweOrigin(baseUrl: string): boolean {
   return TRUSTED_SIWE_ORIGINS.includes(url.origin)
 }
 
+/** A SIWE request was refused because its API origin is not trusted. */
+export class UntrustedSiweOriginError extends Error {
+  constructor(public readonly baseUrl: string) {
+    super(
+      `Untrusted SIWE API origin: ${baseUrl}. Use one of: ${TRUSTED_SIWE_ORIGINS.join(", ")}.`,
+    )
+    this.name = "UntrustedSiweOriginError"
+  }
+}
+
 /** Throw unless `baseUrl` is one of {@link TRUSTED_SIWE_ORIGINS}. */
 export function assertTrustedSiweOrigin(baseUrl: string): void {
   if (!isTrustedSiweOrigin(baseUrl)) {
-    throw new Error(
-      `Untrusted SIWE API origin: ${baseUrl}. Use one of: ${TRUSTED_SIWE_ORIGINS.join(", ")}.`,
-    )
+    throw new UntrustedSiweOriginError(baseUrl)
   }
 }
 
@@ -147,6 +155,7 @@ export async function exchangeScopedToken(
       subjectToken: scopedToken,
       subjectTokenType: "ACCESS_TOKEN",
     }),
+    redirect: "error",
   })
   if (!response.ok) {
     const body = await response.text().catch(() => "")
@@ -170,6 +179,7 @@ export async function refreshSiweSession(
   const response = await fetch(`${baseUrl}/api/v2/auth/session/refresh`, {
     method: "POST",
     headers: { Cookie: cookie },
+    redirect: "error",
   })
   if (!response.ok) {
     const body = await response.text().catch(() => "")
@@ -252,6 +262,7 @@ export async function loginWithSiwe({
       scopes,
       expiresInDays: 1,
     }),
+    redirect: "error",
   })
   if (!createRes.ok) {
     const body = await createRes.text().catch(() => "")
@@ -269,6 +280,7 @@ export async function loginWithSiwe({
     await fetch(`${baseUrl}/api/v2/auth/tokens/${scopedToken.id}`, {
       method: "DELETE",
       headers: { Cookie: cookie },
+      redirect: "error",
     }).catch(() => undefined)
     throw error
   }
