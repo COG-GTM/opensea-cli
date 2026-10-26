@@ -26,6 +26,7 @@ export const CHAIN_IDS: Record<string, number> = {
   arc: 5042,
   b3: 8333,
   base: 8453,
+  plasma: 9745,
   ape_chain: 33139,
   apechain: 33139,
   arbitrum: 42161,

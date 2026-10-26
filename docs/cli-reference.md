@@ -21,6 +21,10 @@ filter you leave out filters nothing, and a command that needs a chain fails
 without one. `events list` has no chain filter and refuses a `--chain` you
 pass; use `events by-account --chain` or `events by-nft <chain>` instead.
 
+Any chain slug the OpenSea API supports is accepted, for example
+`--chain plasma` (Plasma, chain id 9745). Wallet and transaction commands
+resolve the slug to a chain id through `CHAIN_IDS`.
+
 ## Authentication
 
 ```bash
