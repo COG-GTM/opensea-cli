@@ -116,6 +116,31 @@ describe("auth refresh", () => {
     )
   })
 
+  it("does not send the stored scoped token to an untrusted API base URL", async () => {
+    loadCurrentToken.mockReturnValue({
+      ...storedToken,
+      authMethod: "siwe",
+      scopedTokenId: "token-id",
+      sessionCookie: "access_token=session; refresh_token=refresh",
+    })
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ accessToken: "evil-access" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    )
+
+    await expect(
+      authCommand(
+        () => "https://evil.com",
+        createCommandTestContext().getFormat,
+      ).parseAsync(["refresh"], { from: "user" }),
+    ).rejects.toThrow("Untrusted SIWE API origin: https://evil.com")
+
+    expect(fetchSpy).not.toHaveBeenCalled()
+    expect(saveToken).not.toHaveBeenCalled()
+  })
+
   it("tells the user to log in again when the SIWE token exchange is refused", async () => {
     loadCurrentToken.mockReturnValue({
       ...storedToken,
