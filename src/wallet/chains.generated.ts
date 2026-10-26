@@ -12,6 +12,7 @@ export const CHAIN_IDS: Record<string, number> = {
   polygon: 137,
   matic: 137,
   monad: 143,
+  sonic: 146,
   shape: 360,
   flow: 747,
   stablechain: 988,
