@@ -21,6 +21,16 @@ filter you leave out filters nothing, and a command that needs a chain fails
 without one. `events list` has no chain filter and refuses a `--chain` you
 pass; use `events by-account --chain` or `events by-nft <chain>` instead.
 
+Commands that send a transaction (such as `drops deploy --send`) resolve the
+chain name to an EVM chain id. Known names include `ethereum`, `base`,
+`polygon`, `arbitrum`, `optimism`, `plasma`, `sonic`, `linea`, `mantle`,
+`katana` and `celo`; a numeric chain id also works. For example:
+
+```bash
+opensea collections list --chain sonic
+opensea drops deploy --chain linea --name A --symbol A --drop-type seadrop_v2_erc1155_self_mint --token-type erc1155_clone --sender 0x...
+```
+
 ## Authentication
 
 ```bash

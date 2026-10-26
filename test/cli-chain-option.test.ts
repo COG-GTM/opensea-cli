@@ -112,6 +112,44 @@ describe("subcommand --chain through the full program", () => {
     })
   })
 
+  describe("new chains reach subcommands", () => {
+    it.each([
+      "plasma",
+      "sonic",
+      "linea",
+      "mantle",
+      "katana",
+      "celo",
+    ])("drops deploy --chain %s", async (chain) => {
+      respondWith({
+        to: "0x2222222222222222222222222222222222222222",
+        data: "0xdeadbeef",
+        value: "0x0",
+        chain,
+      })
+
+      await run("drops", "deploy", ...deployArgs, "--chain", chain)
+
+      expect(requestedUrl().pathname).toBe("/api/v2/drops/deploy")
+      expect(requestedBody()).toMatchObject({ chain, sender: SENDER })
+    })
+
+    it.each([
+      "plasma",
+      "sonic",
+      "linea",
+      "mantle",
+      "katana",
+      "celo",
+    ])("collections list --chain %s filters by %s", async (chain) => {
+      respondWith({})
+
+      await run("collections", "list", "--chain", chain)
+
+      expect(requestedUrl().searchParams.get("chain")).toBe(chain)
+    })
+  })
+
   describe("accounts token-transfers", () => {
     it("sends the chain the user passed", async () => {
       respondWith({ transfers: [] })
