@@ -132,6 +132,13 @@ This table is a high-level summary; run `opensea --help` for the current command
 
 Global options: `--api-key`, `--chain` (default: ethereum), `--format` (json/table/toon), `--base-url`. A `--chain` you pass, before or after the subcommand, reaches subcommands that take `--chain`; the `ethereum` default never does.
 
+`--chain` takes an OpenSea chain slug such as `ethereum`, `base` or `katana` (Katana, chain id `747474`):
+
+```bash
+opensea collections list --chain katana --limit 5
+opensea nfts list-by-account katana 0xYourAddress
+```
+
 ## Programmatic SDK
 
 ```typescript

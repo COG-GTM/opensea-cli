@@ -21,6 +21,17 @@ filter you leave out filters nothing, and a command that needs a chain fails
 without one. `events list` has no chain filter and refuses a `--chain` you
 pass; use `events by-account --chain` or `events by-nft <chain>` instead.
 
+Chain names are OpenSea API slugs. Wallet and transaction commands resolve
+them to EVM chain ids through `CHAIN_IDS` (`src/wallet/chains.generated.ts`),
+for example `ethereum` → `1`, `base` → `8453`, `katana` → `747474`. A numeric
+chain id is accepted there too.
+
+```bash
+opensea collections list --chain katana --limit 5
+opensea --chain katana events by-account 0xYourAddress
+opensea nfts get katana <contract> <token-id>
+```
+
 ## Authentication
 
 ```bash
