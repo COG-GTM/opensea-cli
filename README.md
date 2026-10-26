@@ -130,7 +130,7 @@ opensea --format table collections stats mfers
 
 This table is a high-level summary; run `opensea --help` for the current command list and [docs/cli-reference.md](docs/cli-reference.md) for the full reference.
 
-Global options: `--api-key`, `--chain` (default: ethereum), `--format` (json/table/toon), `--base-url`. A `--chain` you pass, before or after the subcommand, reaches subcommands that take `--chain`; the `ethereum` default never does.
+Global options: `--api-key`, `--chain` (default: ethereum), `--format` (json/table/toon), `--base-url`. `--chain` takes an OpenSea chain slug such as `ethereum`, `base`, `polygon` or `celo`. A `--chain` you pass, before or after the subcommand, reaches subcommands that take `--chain`; the `ethereum` default never does.
 
 ## Programmatic SDK
 

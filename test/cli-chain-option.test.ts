@@ -132,6 +132,22 @@ describe("subcommand --chain through the full program", () => {
       expect(requestedUrl().searchParams.get("chain")).toBe("base")
     })
 
+    it("sends celo when the user passes --chain celo", async () => {
+      respondWith({ transfers: [] })
+
+      await run(
+        "accounts",
+        "token-transfers",
+        "0x1111111111111111111111111111111111111111",
+        "--contract-address",
+        "0x2222222222222222222222222222222222222222",
+        "--chain",
+        "celo",
+      )
+
+      expect(requestedUrl().searchParams.get("chain")).toBe("celo")
+    })
+
     it("errors instead of defaulting to ethereum when --chain is missing", async () => {
       vi.spyOn(process.stderr, "write").mockImplementation(() => true)
       vi.spyOn(process, "exit").mockImplementation(() => {
