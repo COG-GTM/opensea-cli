@@ -273,6 +273,28 @@ describe("dropsCommand", () => {
       )
     })
 
+    it("refuses to sign a mint built by an untrusted API origin", async () => {
+      vi.spyOn(console, "error").mockImplementation(() => {})
+      ctx.mockClient.post.mockResolvedValue(mintTx)
+      ctx.mockClient.assertTrustedSigningOrigin.mockImplementation(() => {
+        throw new Error("Refusing to sign drop mint transactions")
+      })
+      const wallet = evmWallet("0x9999999999999999999999999999999999999999")
+      walletMock.createWalletFromEnv.mockReturnValue(wallet)
+
+      const cmd = dropsCommand(ctx.getClient, ctx.getFormat)
+      await expect(
+        cmd.parseAsync(["mint", "cool-cats", "--minter", MINTER, "--send"], {
+          from: "user",
+        }),
+      ).rejects.toThrow("Refusing to sign drop mint transactions")
+
+      expect(ctx.mockClient.assertTrustedSigningOrigin).toHaveBeenCalledWith(
+        "drop mint",
+      )
+      expect(wallet.sendTransaction).not.toHaveBeenCalled()
+    })
+
     it("rejects a Solana wallet before building the transaction", async () => {
       const stderr = vi.spyOn(console, "error").mockImplementation(() => {})
       vi.spyOn(process, "exit").mockImplementation(() => {

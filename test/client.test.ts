@@ -29,6 +29,62 @@ describe("OpenSeaClient", () => {
     })
   })
 
+  describe("assertTrustedSigningOrigin", () => {
+    it("allows the OpenSea API origins", () => {
+      expect(() => client.assertTrustedSigningOrigin("swap")).not.toThrow()
+      const testnets = new OpenSeaClient({
+        apiKey: "key",
+        baseUrl: "https://testnets-api.opensea.io",
+      })
+      expect(() => testnets.assertTrustedSigningOrigin("swap")).not.toThrow()
+    })
+
+    it.each([
+      "https://mallory.example",
+      "http://api.opensea.io",
+      "https://api.opensea.io.mallory.example",
+      "https://api.opensea.io:8443",
+      "not a url",
+    ])("refuses %s", baseUrl => {
+      const untrusted = new OpenSeaClient({ apiKey: "key", baseUrl })
+      expect(() => untrusted.assertTrustedSigningOrigin("swap")).toThrow(
+        `Refusing to sign swap transactions built by ${baseUrl}`,
+      )
+    })
+
+    it("allows any origin with allowUntrustedSigning", () => {
+      const overridden = new OpenSeaClient({
+        apiKey: "key",
+        baseUrl: "https://staging.example",
+        allowUntrustedSigning: true,
+      })
+      expect(() => overridden.assertTrustedSigningOrigin("swap")).not.toThrow()
+    })
+  })
+
+  describe("redirects", () => {
+    function mockRedirectedResponse(url: string): void {
+      const response = new Response(JSON.stringify({ transactions: [] }))
+      Object.defineProperty(response, "redirected", { value: true })
+      Object.defineProperty(response, "url", { value: url })
+      vi.spyOn(globalThis, "fetch").mockResolvedValue(response)
+    }
+
+    it("refuses a response redirected away from the OpenSea API", async () => {
+      mockRedirectedResponse("https://mallory.example/api/v2/swap/quote")
+      await expect(client.get("/api/v2/swap/quote")).rejects.toThrow(
+        "redirected away from the OpenSea API",
+      )
+    })
+
+    it("allows a redirect that stays on an OpenSea API origin", async () => {
+      mockRedirectedResponse("https://api.opensea.io/api/v2/swap/quote?x=1")
+      await expect(client.get("/api/v2/swap/quote")).resolves.toEqual({
+        transactions: [],
+      })
+    })
+  })
+
   describe("get", () => {
     it("makes GET request with correct headers", async () => {
       const mockResponse = { name: "test" }

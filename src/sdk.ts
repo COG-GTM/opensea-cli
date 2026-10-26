@@ -455,6 +455,7 @@ export class CollectionsAPI {
     },
   ): Promise<TransactionResult[]> {
     const evmWallet = requireEvmAdapter(wallet, "collection transactions")
+    this.client.assertTrustedSigningOrigin("collection")
     const address = (await evmWallet.getAddress()).toLowerCase()
     const foreign = txs.find(tx => tx.from.toLowerCase() !== address)
     if (foreign) {
@@ -657,6 +658,7 @@ export class DropsAPI {
     },
   ): Promise<TransactionResult> {
     const evmWallet = requireEvmAdapter(wallet, "drop deploy")
+    this.client.assertTrustedSigningOrigin("drop deploy")
     const address = await evmWallet.getAddress()
     if (address.toLowerCase() !== sender.toLowerCase()) {
       throw new Error(
@@ -684,6 +686,7 @@ export class DropsAPI {
     },
   ): Promise<TransactionResult> {
     const evmWallet = requireEvmAdapter(wallet, "drop mint")
+    this.client.assertTrustedSigningOrigin("drop mint")
     return sendDropTransaction(evmWallet, tx, callbacks)
   }
 
@@ -755,6 +758,7 @@ export class DropsAPI {
     },
   ): Promise<TransactionResult> {
     const evmWallet = requireEvmAdapter(wallet, "drop transactions")
+    this.client.assertTrustedSigningOrigin("drop")
     const address = await evmWallet.getAddress()
     if (address.toLowerCase() !== tx.from.toLowerCase()) {
       throw new Error(
@@ -2023,6 +2027,89 @@ class SearchAPI {
   }
 }
 
+const NATIVE_TOKEN_ADDRESSES = new Set([
+  "0x0000000000000000000000000000000000000000",
+  "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+])
+
+function chainIdOrUndefined(chain: string): number | undefined {
+  try {
+    return resolveChainId(chain)
+  } catch {
+    return undefined
+  }
+}
+
+function isSameChain(a: string, b: string): boolean {
+  if (a.toLowerCase() === b.toLowerCase()) return true
+  const id = chainIdOrUndefined(a)
+  return id !== undefined && id === chainIdOrUndefined(b)
+}
+
+/**
+ * Check a swap quote's transactions against the swap that was asked for,
+ * before any is signed, and return each one's value as decimal wei. Every
+ * sendable transaction must be on the from or to chain. Native value may only
+ * be spent on the from chain when the from token is native, and in total no
+ * more than `quantity`; every other transaction must carry zero value.
+ */
+function checkSwapTransactions(
+  txs: SwapQuoteResponse["transactions"],
+  options: {
+    fromChain: string
+    fromAddress: string
+    toChain: string
+    quantity: string
+  },
+): string[] {
+  const nativeSource = NATIVE_TOKEN_ADDRESSES.has(
+    options.fromAddress.toLowerCase(),
+  )
+  let budget: bigint | undefined
+  if (nativeSource) {
+    if (!/^\d+$/.test(options.quantity)) {
+      throw new Error(
+        `Swap quantity must be an integer amount in smallest units, got ${options.quantity}`,
+      )
+    }
+    budget = BigInt(options.quantity)
+  }
+  let spent = 0n
+  return txs.map(tx => {
+    if (!tx.to) return "0"
+    if (
+      !isSameChain(tx.chain, options.fromChain) &&
+      !isSameChain(tx.chain, options.toChain)
+    ) {
+      throw new Error(
+        `Refusing to sign swap transaction on chain ${tx.chain}: the swap is from ${options.fromChain} to ${options.toChain}.`,
+      )
+    }
+    let value: bigint
+    try {
+      value = BigInt(tx.value ?? "0")
+    } catch {
+      throw new Error(`Swap transaction has an invalid value: ${tx.value}`)
+    }
+    if (value < 0n) {
+      throw new Error(`Swap transaction has an invalid value: ${tx.value}`)
+    }
+    if (value === 0n) return "0"
+    if (!nativeSource || !isSameChain(tx.chain, options.fromChain)) {
+      throw new Error(
+        `Refusing to sign swap transaction to ${tx.to} on ${tx.chain} carrying ${value} wei of native currency: the swap does not spend native currency on that chain.`,
+      )
+    }
+    spent += value
+    if (budget !== undefined && spent > budget) {
+      throw new Error(
+        `Refusing to sign swap transactions spending ${spent} wei of native currency, more than the requested quantity ${options.quantity}.`,
+      )
+    }
+    return value.toString()
+  })
+}
+
 export class SwapsAPI {
   constructor(private client: OpenSeaClient) {}
 
@@ -2081,6 +2168,7 @@ export class SwapsAPI {
     // Rejects a Solana wallet here rather than failing later on a missing `sendTransaction`,
     // and before the quote request. Matches how the x402 scheme guards its own boundary.
     const evmWallet = requireEvmAdapter(wallet, "swap execution")
+    this.client.assertTrustedSigningOrigin("swap")
 
     const address = options.address ?? (await evmWallet.getAddress())
     const quote = await this.quote({ ...options, address })
@@ -2093,9 +2181,10 @@ export class SwapsAPI {
       )
     }
 
+    const values = checkSwapTransactions(quote.transactions, options)
     const results: TransactionResult[] = []
 
-    for (const tx of quote.transactions) {
+    for (const [i, tx] of quote.transactions.entries()) {
       if (!tx.to) {
         callbacks?.onSkipped?.({
           chain: tx.chain,
@@ -2108,7 +2197,7 @@ export class SwapsAPI {
       const result = await evmWallet.sendTransaction({
         to: tx.to,
         data: tx.data,
-        value: tx.value ?? "0",
+        value: values[i],
         chainId,
       })
       results.push(result)

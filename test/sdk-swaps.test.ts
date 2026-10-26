@@ -15,6 +15,7 @@ vi.mock("../src/client.js", async importOriginal => {
   MockOpenSeaClient.prototype.post = vi.fn()
   MockOpenSeaClient.prototype.getDefaultChain = vi.fn(() => "ethereum")
   MockOpenSeaClient.prototype.getApiKeyPrefix = vi.fn(() => "test...")
+  MockOpenSeaClient.prototype.assertTrustedSigningOrigin = vi.fn()
   return {
     OpenSeaClient: MockOpenSeaClient,
     OpenSeaAPIError: actual.OpenSeaAPIError,
@@ -97,7 +98,7 @@ describe("SwapsAPI.execute", () => {
           value: "0",
           chain: "ethereum",
         },
-        { to: "0xRouter", data: "0xswap", value: "100", chain: "ethereum" },
+        { to: "0xRouter", data: "0xswap", value: "0", chain: "ethereum" },
       ],
     })
 
@@ -357,5 +358,186 @@ describe("SwapsAPI.execute", () => {
     // failure surfaces later as a missing sendTransaction, after a network round trip.
     expect(mockGet).not.toHaveBeenCalled()
     expect(svm.getAddress).not.toHaveBeenCalled()
+  })
+})
+
+describe("SwapsAPI.execute checks quote transactions before signing", () => {
+  const NATIVE = "0x0000000000000000000000000000000000000000"
+  const ROUTER = "0x5555555555555555555555555555555555555555"
+  const ATTACKER = "0x6666666666666666666666666666666666666666"
+  let sdk: OpenSeaCLI
+  let mockGet: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    sdk = new OpenSeaCLI({ apiKey: "test-key" })
+    mockGet = vi.mocked(OpenSeaClient.prototype.get)
+  })
+
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  const nativeSwap = {
+    fromChain: "base",
+    fromAddress: NATIVE,
+    toChain: "base",
+    toAddress: "0xTokenB",
+    quantity: "1000",
+  }
+
+  it("refuses a native value larger than the requested quantity", async () => {
+    const wallet = createMockWallet()
+    mockGet.mockResolvedValue({
+      transactions: [
+        { to: ATTACKER, data: "0x", value: "1001", chain: "base" },
+      ],
+    })
+
+    await expect(sdk.swaps.execute(nativeSwap, wallet)).rejects.toThrow(
+      "more than the requested quantity 1000",
+    )
+    expect(wallet.sendTransaction).not.toHaveBeenCalled()
+  })
+
+  it("refuses when the values across transactions add up to more than the quantity", async () => {
+    const wallet = createMockWallet()
+    mockGet.mockResolvedValue({
+      transactions: [
+        { to: ROUTER, data: "0x", value: "600", chain: "base" },
+        { to: ATTACKER, data: "0x", value: "0x190", chain: "base" },
+        { to: ATTACKER, data: "0x", value: "1", chain: "base" },
+      ],
+    })
+
+    await expect(sdk.swaps.execute(nativeSwap, wallet)).rejects.toThrow(
+      "spending 1001 wei",
+    )
+    expect(wallet.sendTransaction).not.toHaveBeenCalled()
+  })
+
+  it("refuses any native value when the from token is not native", async () => {
+    const wallet = createMockWallet()
+    mockGet.mockResolvedValue({
+      transactions: [
+        { to: ROUTER, data: "0xapprove", value: "0", chain: "base" },
+        { to: ATTACKER, data: "0x", value: "1", chain: "base" },
+      ],
+    })
+
+    await expect(
+      sdk.swaps.execute(
+        { ...nativeSwap, fromAddress: "0xTokenA", quantity: "1000000" },
+        wallet,
+      ),
+    ).rejects.toThrow("does not spend native currency")
+    expect(wallet.sendTransaction).not.toHaveBeenCalled()
+  })
+
+  it("refuses native value on the destination chain of a cross-chain swap", async () => {
+    const wallet = createMockWallet()
+    mockGet.mockResolvedValue({
+      transactions: [{ to: ATTACKER, data: "0x", value: "1", chain: "base" }],
+    })
+
+    await expect(
+      sdk.swaps.execute({ ...nativeSwap, fromChain: "ethereum" }, wallet),
+    ).rejects.toThrow("does not spend native currency")
+    expect(wallet.sendTransaction).not.toHaveBeenCalled()
+  })
+
+  it("refuses a transaction on a chain the swap does not touch", async () => {
+    const wallet = createMockWallet()
+    mockGet.mockResolvedValue({
+      transactions: [
+        { to: ROUTER, data: "0x", value: "0", chain: "base" },
+        { to: ATTACKER, data: "0x", value: "0", chain: "arbitrum" },
+      ],
+    })
+
+    await expect(sdk.swaps.execute(nativeSwap, wallet)).rejects.toThrow(
+      "on chain arbitrum: the swap is from base to base",
+    )
+    expect(wallet.sendTransaction).not.toHaveBeenCalled()
+  })
+
+  it("refuses a value that is not a number", async () => {
+    const wallet = createMockWallet()
+    mockGet.mockResolvedValue({
+      transactions: [{ to: ROUTER, data: "0x", value: "lots", chain: "base" }],
+    })
+
+    await expect(sdk.swaps.execute(nativeSwap, wallet)).rejects.toThrow(
+      "invalid value: lots",
+    )
+    expect(wallet.sendTransaction).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    "0x56bc75e2d63100000",
+    "",
+    " 1000",
+  ])("refuses a native quantity %j that is not a decimal integer", async quantity => {
+    const wallet = createMockWallet()
+    mockGet.mockResolvedValue({
+      transactions: [{ to: ROUTER, data: "0x", value: "1", chain: "base" }],
+    })
+
+    await expect(
+      sdk.swaps.execute({ ...nativeSwap, quantity }, wallet),
+    ).rejects.toThrow("Swap quantity must be an integer amount")
+    expect(wallet.sendTransaction).not.toHaveBeenCalled()
+  })
+
+  it("refuses before quoting when the API origin is not trusted", async () => {
+    const wallet = createMockWallet()
+    vi.mocked(
+      OpenSeaClient.prototype.assertTrustedSigningOrigin,
+    ).mockImplementationOnce(() => {
+      throw new Error("Refusing to sign swap transactions")
+    })
+
+    await expect(sdk.swaps.execute(nativeSwap, wallet)).rejects.toThrow(
+      "Refusing to sign swap transactions",
+    )
+    expect(mockGet).not.toHaveBeenCalled()
+    expect(wallet.sendTransaction).not.toHaveBeenCalled()
+  })
+
+  it("signs a native swap within the quantity, passing value as decimal wei", async () => {
+    const wallet = createMockWallet()
+    mockGet.mockResolvedValue({
+      transactions: [
+        { to: ROUTER, data: "0xswap", value: "0x3e8", chain: "8453" },
+      ],
+    })
+
+    await sdk.swaps.execute(nativeSwap, wallet)
+
+    expect(wallet.sendTransaction).toHaveBeenCalledWith({
+      to: ROUTER,
+      data: "0xswap",
+      value: "1000",
+      chainId: 8453,
+    })
+  })
+
+  it("signs zero-value transactions on the destination chain", async () => {
+    const wallet = createMockWallet()
+    mockGet.mockResolvedValue({
+      transactions: [
+        { to: ROUTER, data: "0xbridge", value: "1000", chain: "ethereum" },
+        { to: ROUTER, data: "0xclaim", value: null, chain: "base" },
+      ],
+    })
+
+    await sdk.swaps.execute({ ...nativeSwap, fromChain: "ethereum" }, wallet)
+
+    expect(wallet.sendTransaction).toHaveBeenCalledTimes(2)
+    expect(wallet.sendTransaction).toHaveBeenLastCalledWith({
+      to: ROUTER,
+      data: "0xclaim",
+      value: "0",
+      chainId: 8453,
+    })
   })
 })

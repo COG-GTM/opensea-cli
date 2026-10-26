@@ -1,3 +1,4 @@
+import { isTrustedSiweOrigin } from "./auth/siwe-login.js"
 import type { OpenSeaClientConfig } from "./types/index.js"
 
 declare const __VERSION__: string
@@ -115,6 +116,7 @@ export class OpenSeaClient {
   private authTokenExpiresAt: string | undefined
   private refreshAuthToken: OpenSeaClientConfig["refreshAuthToken"]
   private authRefresh: Promise<string> | undefined
+  private allowUntrustedSigning: boolean
 
   constructor(config: OpenSeaClientConfig) {
     this.apiKey = config.apiKey
@@ -127,6 +129,7 @@ export class OpenSeaClient {
     this.retryBaseDelay = config.retryBaseDelay ?? DEFAULT_RETRY_BASE_DELAY_MS
     this.authTokenExpiresAt = config.authTokenExpiresAt
     this.refreshAuthToken = config.refreshAuthToken
+    this.allowUntrustedSigning = config.allowUntrustedSigning ?? false
   }
 
   // One refresh per client. Concurrent requests share it, and a failed
@@ -297,6 +300,18 @@ export class OpenSeaClient {
     return this.defaultChain
   }
 
+  /**
+   * Throw unless transactions built by this client's API may be signed. The
+   * API picks each transaction's `to`, `data`, `value` and chain, so only an
+   * OpenSea API origin is trusted unless `allowUntrustedSigning` is set.
+   */
+  assertTrustedSigningOrigin(action: string): void {
+    if (this.allowUntrustedSigning || isTrustedSiweOrigin(this.baseUrl)) return
+    throw new Error(
+      `Refusing to sign ${action} transactions built by ${this.baseUrl}, which is not an OpenSea API origin. Pass --allow-untrusted-base-url (SDK: allowUntrustedSigning) only if you trust that server with your wallet.`,
+    )
+  }
+
   getApiKeyPrefix(): string {
     if (this.apiKey.length < 8) return "***"
     return `${this.apiKey.slice(0, 4)}...`
@@ -315,6 +330,23 @@ export class OpenSeaClient {
 
       if (this.verbose) {
         console.error(`[verbose] ${response.status} ${response.statusText}`)
+      }
+
+      // Signing trusts responses from an OpenSea origin, so don't let a
+      // redirect hand that trust to another server.
+      if (
+        response.redirected &&
+        isTrustedSiweOrigin(this.baseUrl) &&
+        !isTrustedSiweOrigin(response.url)
+      ) {
+        try {
+          await response.body?.cancel()
+        } catch {
+          // Stream may already be disturbed
+        }
+        throw new Error(
+          `Refusing response from ${response.url}: ${path} was redirected away from the OpenSea API.`,
+        )
       }
 
       if (response.ok) {

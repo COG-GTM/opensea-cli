@@ -62,6 +62,10 @@ export function createProgram(): Command {
     .option("--chain <chain>", "Default chain", "ethereum")
     .option("--format <format>", "Output format (json, table, or toon)", "json")
     .option("--base-url <url>", "API base URL")
+    .option(
+      "--allow-untrusted-base-url",
+      "Allow signing transactions built by a --base-url that is not an OpenSea API origin",
+    )
     .option("--timeout <ms>", "Request timeout in milliseconds", "30000")
     .option("--verbose", "Log request and response info to stderr")
     .option(
@@ -86,6 +90,7 @@ export function createProgram(): Command {
       apiKey?: string
       chain: string
       baseUrl?: string
+      allowUntrustedBaseUrl?: boolean
       timeout: string
       verbose?: boolean
       maxRetries: string
@@ -130,6 +135,7 @@ export function createProgram(): Command {
       authToken,
       chain: opts.chain,
       baseUrl: opts.baseUrl,
+      allowUntrustedSigning: opts.allowUntrustedBaseUrl,
       timeout: parseIntOption(opts.timeout, "--timeout"),
       verbose: opts.verbose,
       maxRetries,
