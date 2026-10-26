@@ -70,10 +70,12 @@ describe("automatic wallet auth token refresh", () => {
     expect(authorization(0)).toBe("Bearer old-access")
   })
 
-  it("never sends the refresh token to a --base-url override", async () => {
+  it("never sends the stored tokens to an untrusted --base-url", async () => {
+    const stderr = vi.spyOn(console, "error").mockImplementation(() => {})
+
     await run(
       "--base-url",
-      "https://proxy.example.com",
+      "https://example.test",
       "drops",
       "eligibility",
       "cool-cats",
@@ -81,9 +83,54 @@ describe("automatic wallet auth token refresh", () => {
 
     expect(fetchSpy).toHaveBeenCalledTimes(1)
     expect(String(fetchSpy.mock.calls[0][0])).toBe(
-      "https://proxy.example.com/api/v2/drops/cool-cats/eligibility",
+      "https://example.test/api/v2/drops/cool-cats/eligibility",
     )
+    expect(authorization(0)).toBeUndefined()
+    expect(stderr).toHaveBeenCalledWith(
+      "Saved wallet auth token not sent to untrusted --base-url https://example.test; pass --auth-token to send one.",
+    )
+  })
+
+  it("rejects look-alike hosts for the stored token", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {})
+
+    await run(
+      "--no-auth-refresh",
+      "--base-url",
+      "https://api.opensea.io.example.test",
+      "drops",
+      "eligibility",
+      "cool-cats",
+    )
+
+    expect(authorization(0)).toBeUndefined()
+  })
+
+  it("sends the stored token to a trusted --base-url", async () => {
+    await run(
+      "--no-auth-refresh",
+      "--base-url",
+      "https://api.opensea.io",
+      "drops",
+      "eligibility",
+      "cool-cats",
+    )
+
     expect(authorization(0)).toBe("Bearer old-access")
+  })
+
+  it("sends an explicit --auth-token to an untrusted --base-url", async () => {
+    await run(
+      "--base-url",
+      "https://example.test",
+      "--auth-token",
+      "explicit",
+      "drops",
+      "eligibility",
+      "cool-cats",
+    )
+
+    expect(authorization(0)).toBe("Bearer explicit")
   })
 
   it("does not refresh automatically with an --auth-base-url override", async () => {

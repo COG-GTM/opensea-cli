@@ -2,6 +2,7 @@ import { Command } from "commander"
 import { EXIT_AUTH_ERROR } from "./api-error.js"
 import { DEFAULT_AUTH_BASE_URL } from "./auth/oauth-config.js"
 import { canRefreshAutomatically, refreshForRequest } from "./auth/refresh.js"
+import { isTrustedSiweOrigin } from "./auth/siwe-login.js"
 import { loadCurrentToken } from "./auth/store.js"
 import { DEFAULT_BASE_URL, OpenSeaClient } from "./client.js"
 import {
@@ -110,12 +111,23 @@ export function createProgram(): Command {
     const explicitToken = opts.authToken ?? process.env.OPENSEA_AUTH_TOKEN
     // Only a token from the auth store can be refreshed: it carries the
     // refresh token and expiry that --auth-token and the env var lack.
-    const stored = explicitToken === undefined ? loadCurrentToken() : undefined
-    const authToken = explicitToken ?? stored?.accessToken
+    const loaded = explicitToken === undefined ? loadCurrentToken() : undefined
     const refreshTargets = {
       apiBaseUrl: opts.baseUrl ?? DEFAULT_BASE_URL,
       authBaseUrl: opts.authBaseUrl ?? DEFAULT_AUTH_BASE_URL,
     }
+    // The stored token is only sent to OpenSea's own API origins; any other
+    // --base-url needs an explicit --auth-token or OPENSEA_AUTH_TOKEN.
+    const stored =
+      loaded && isTrustedSiweOrigin(refreshTargets.apiBaseUrl)
+        ? loaded
+        : undefined
+    if (loaded && !stored) {
+      console.error(
+        `Saved wallet auth token not sent to untrusted --base-url ${refreshTargets.apiBaseUrl}; pass --auth-token to send one.`,
+      )
+    }
+    const authToken = explicitToken ?? stored?.accessToken
     const refresh =
       stored && opts.authRefresh && canRefreshAutomatically(refreshTargets)
         ? {
