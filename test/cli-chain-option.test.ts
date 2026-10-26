@@ -93,6 +93,15 @@ describe("subcommand --chain through the full program", () => {
       expect(requestedBody()).toMatchObject({ chain: "base" })
     })
 
+    it("sends mantle when the user passes --chain mantle", async () => {
+      respondWith({ ...deployTx, chain: "mantle" })
+
+      await run("--chain", "mantle", "drops", "deploy", ...deployArgs)
+
+      expect(requestedUrl().pathname).toBe("/api/v2/drops/deploy")
+      expect(requestedBody()).toMatchObject({ chain: "mantle", sender: SENDER })
+    })
+
     it("refuses to fall back to the program's default chain", async () => {
       const stderr = vi
         .spyOn(process.stderr, "write")
