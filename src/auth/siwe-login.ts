@@ -26,6 +26,18 @@ export function isTrustedSiweOrigin(baseUrl: string): boolean {
   return TRUSTED_SIWE_ORIGINS.includes(url.origin)
 }
 
+/**
+ * Refuse to send SIWE credentials (signatures, session cookies, scoped
+ * tokens) to any host outside {@link TRUSTED_SIWE_ORIGINS}.
+ */
+function assertTrustedSiweOrigin(baseUrl: string): void {
+  if (!isTrustedSiweOrigin(baseUrl)) {
+    throw new Error(
+      `Untrusted SIWE API origin: ${baseUrl}. Use one of: ${TRUSTED_SIWE_ORIGINS.join(", ")}.`,
+    )
+  }
+}
+
 interface ScopedTokenCreatedResponse {
   id: string
   token: string
@@ -127,6 +139,7 @@ export async function exchangeScopedToken(
   baseUrl: string,
   scopedToken: string,
 ): Promise<ScopedTokenExchangeResponse> {
+  assertTrustedSiweOrigin(baseUrl)
   const response = await fetch(`${baseUrl}/api/v2/auth/tokens/exchange`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -151,6 +164,7 @@ export async function refreshSiweSession(
   baseUrl: string,
   cookie: string,
 ): Promise<string> {
+  assertTrustedSiweOrigin(baseUrl)
   const response = await fetch(`${baseUrl}/api/v2/auth/session/refresh`, {
     method: "POST",
     headers: { Cookie: cookie },
@@ -175,11 +189,7 @@ export async function loginWithSiwe({
   privateKey: string
   scopes: string[]
 }): Promise<SiweLoginResult> {
-  if (!isTrustedSiweOrigin(baseUrl)) {
-    throw new Error(
-      `Untrusted SIWE API origin: ${baseUrl}. Use one of: ${TRUSTED_SIWE_ORIGINS.join(", ")}.`,
-    )
-  }
+  assertTrustedSiweOrigin(baseUrl)
 
   const adapter = new PrivateKeyAdapter({
     privateKey,

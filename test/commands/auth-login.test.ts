@@ -321,4 +321,39 @@ describe("auth login", () => {
       "0xfba662e1a8e91a350702cf3b87d0c2d2fb4ba57f",
     )
   })
+
+  it("does not send the SIWE session to an untrusted API base URL on revoke", async () => {
+    loadCurrentToken.mockReturnValue({
+      accessToken: "wallet-jwt",
+      refreshToken: "pat-value",
+      scopedTokenId: "381768924447939181",
+      sessionCookie:
+        "access_token=session-access; refresh_token=session-refresh",
+      expiresAt: "2030-01-01T00:00:00.000Z",
+      requestedScopes: ["write:wallets"],
+      scopes: ["write:wallets"],
+      address: "0xfba662e1a8e91a350702cf3b87d0c2d2fb4ba57f",
+      authMethod: "siwe",
+    })
+    const refreshHeaders = new Headers()
+    refreshHeaders.append("set-cookie", "access_token=evil-access; Path=/")
+    refreshHeaders.append("set-cookie", "refresh_token=evil-refresh; Path=/")
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response("{}", { status: 200, headers: refreshHeaders }),
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+
+    await expect(
+      authCommand(
+        () => "https://evil.com",
+        createCommandTestContext().getFormat,
+      ).parseAsync(["revoke"], { from: "user" }),
+    ).rejects.toThrow("Untrusted SIWE API origin: https://evil.com")
+
+    expect(fetchSpy).not.toHaveBeenCalled()
+    expect(saveToken).not.toHaveBeenCalled()
+    expect(removeToken).not.toHaveBeenCalled()
+  })
 })
