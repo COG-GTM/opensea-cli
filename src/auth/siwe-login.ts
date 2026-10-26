@@ -6,10 +6,11 @@ const SIWE_STATEMENT =
   "Click to sign in and accept the Platform Terms of Service (https://opensea.io/tos) and Privacy Policy (https://opensea.io/privacy)."
 
 /**
- * Supported API origins for SIWE login. The signed SIWE message binds to
+ * Supported API origins for SIWE requests. The signed SIWE message binds to
  * opensea.io, so the nonce/verify endpoints must be served by a trusted
  * OpenSea API host to prevent signature replay against an attacker-controlled
- * server.
+ * server. Every request that sends a stored SIWE credential (session cookie or
+ * personal access token) is held to the same list.
  */
 const TRUSTED_SIWE_ORIGINS = [
   "https://api.opensea.io",
@@ -24,6 +25,15 @@ export function isTrustedSiweOrigin(baseUrl: string): boolean {
     return false
   }
   return TRUSTED_SIWE_ORIGINS.includes(url.origin)
+}
+
+/** Throw unless `baseUrl` is one of {@link TRUSTED_SIWE_ORIGINS}. */
+export function assertTrustedSiweOrigin(baseUrl: string): void {
+  if (!isTrustedSiweOrigin(baseUrl)) {
+    throw new Error(
+      `Untrusted SIWE API origin: ${baseUrl}. Use one of: ${TRUSTED_SIWE_ORIGINS.join(", ")}.`,
+    )
+  }
 }
 
 interface ScopedTokenCreatedResponse {
@@ -121,12 +131,15 @@ export class TokenExchangeError extends Error {
 }
 
 /**
- * Exchange a scoped token (PAT) for a short-lived JWT access token.
+ * Exchange a scoped token (PAT) for a short-lived JWT access token. Refuses
+ * any `baseUrl` outside the trusted OpenSea API origins, since the PAT is a
+ * long-lived credential.
  */
 export async function exchangeScopedToken(
   baseUrl: string,
   scopedToken: string,
 ): Promise<ScopedTokenExchangeResponse> {
+  assertTrustedSiweOrigin(baseUrl)
   const response = await fetch(`${baseUrl}/api/v2/auth/tokens/exchange`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -146,11 +159,14 @@ export async function exchangeScopedToken(
  * Rotate a SIWE browser session and return the replacement cookies. Scoped
  * token management is session-only, so callers refresh before a management
  * request instead of trying to use the wallet JWT as an administrator token.
+ * Refuses any `baseUrl` outside the trusted OpenSea API origins, since the
+ * session cookie can mint new tokens with any scope.
  */
 export async function refreshSiweSession(
   baseUrl: string,
   cookie: string,
 ): Promise<string> {
+  assertTrustedSiweOrigin(baseUrl)
   const response = await fetch(`${baseUrl}/api/v2/auth/session/refresh`, {
     method: "POST",
     headers: { Cookie: cookie },
@@ -175,11 +191,7 @@ export async function loginWithSiwe({
   privateKey: string
   scopes: string[]
 }): Promise<SiweLoginResult> {
-  if (!isTrustedSiweOrigin(baseUrl)) {
-    throw new Error(
-      `Untrusted SIWE API origin: ${baseUrl}. Use one of: ${TRUSTED_SIWE_ORIGINS.join(", ")}.`,
-    )
-  }
+  assertTrustedSiweOrigin(baseUrl)
 
   const adapter = new PrivateKeyAdapter({
     privateKey,

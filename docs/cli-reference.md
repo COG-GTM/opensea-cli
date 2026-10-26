@@ -35,7 +35,11 @@ never refreshes a token passed with `--auth-token` or `OPENSEA_AUTH_TOKEN`, and
 it only refreshes against OpenSea's own servers, so a `--base-url` other than
 the OpenSea API or any `--auth-base-url` turns it off. `--no-auth-refresh` turns it off
 explicitly. `opensea auth refresh` does the
-same refresh on demand. When the server refuses the refresh token (401 or 403
+same refresh on demand. For a private-key login, `opensea auth refresh` and
+`opensea auth revoke` send the stored personal access token or wallet session
+only to OpenSea's API (`https://api.opensea.io` or
+`https://testnets-api.opensea.io`); with any other `--base-url` they fail before
+sending anything and leave the stored token untouched. When the server refuses the refresh token (401 or 403
 for a private-key login, 400, 401 or 403 for OAuth), the error says so and names the
 command to sign in again, such as
 `opensea auth login --private-key --scopes <scopes>`, and exits 2. A failed
