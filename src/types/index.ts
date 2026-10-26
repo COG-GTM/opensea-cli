@@ -21,6 +21,12 @@ export interface OpenSeaClientConfig {
    * request sent with `authToken` returns 401, which is then retried once.
    */
   refreshAuthToken?: (reason: "expired" | "unauthorized") => Promise<string>
+  /**
+   * Sign and send transactions built by a `baseUrl` that is not an OpenSea
+   * API origin. Off by default: such a server decides where the wallet's
+   * funds go.
+   */
+  allowUntrustedSigning?: boolean
 }
 
 export interface CommandOptions {

@@ -9,6 +9,7 @@ export type MockClient = {
   patch: Mock
   delete: Mock
   getApiKeyPrefix: Mock
+  assertTrustedSigningOrigin: Mock
 }
 
 export type CommandTestContext = {
@@ -26,6 +27,7 @@ export function createCommandTestContext(): CommandTestContext {
     patch: vi.fn(),
     delete: vi.fn(),
     getApiKeyPrefix: vi.fn().mockReturnValue("test..."),
+    assertTrustedSigningOrigin: vi.fn(),
   }
   const getClient = () => mockClient as unknown as OpenSeaClient
   const getFormat = () => "json" as OutputFormat

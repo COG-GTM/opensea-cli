@@ -12,6 +12,7 @@ vi.mock("../src/client.js", async importOriginal => {
   MockOpenSeaClient.prototype.delete = vi.fn()
   MockOpenSeaClient.prototype.getDefaultChain = vi.fn(() => "ethereum")
   MockOpenSeaClient.prototype.getApiKeyPrefix = vi.fn(() => "test...")
+  MockOpenSeaClient.prototype.assertTrustedSigningOrigin = vi.fn()
   return {
     OpenSeaClient: MockOpenSeaClient,
     OpenSeaAPIError: actual.OpenSeaAPIError,

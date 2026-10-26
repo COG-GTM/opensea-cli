@@ -29,6 +29,39 @@ describe("OpenSeaClient", () => {
     })
   })
 
+  describe("assertTrustedSigningOrigin", () => {
+    it("allows the OpenSea API origins", () => {
+      expect(() => client.assertTrustedSigningOrigin("swap")).not.toThrow()
+      const testnets = new OpenSeaClient({
+        apiKey: "key",
+        baseUrl: "https://testnets-api.opensea.io",
+      })
+      expect(() => testnets.assertTrustedSigningOrigin("swap")).not.toThrow()
+    })
+
+    it.each([
+      "https://mallory.example",
+      "http://api.opensea.io",
+      "https://api.opensea.io.mallory.example",
+      "https://api.opensea.io:8443",
+      "not a url",
+    ])("refuses %s", baseUrl => {
+      const untrusted = new OpenSeaClient({ apiKey: "key", baseUrl })
+      expect(() => untrusted.assertTrustedSigningOrigin("swap")).toThrow(
+        `Refusing to sign swap transactions built by ${baseUrl}`,
+      )
+    })
+
+    it("allows any origin with allowUntrustedSigning", () => {
+      const overridden = new OpenSeaClient({
+        apiKey: "key",
+        baseUrl: "https://staging.example",
+        allowUntrustedSigning: true,
+      })
+      expect(() => overridden.assertTrustedSigningOrigin("swap")).not.toThrow()
+    })
+  })
+
   describe("get", () => {
     it("makes GET request with correct headers", async () => {
       const mockResponse = { name: "test" }

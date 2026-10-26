@@ -9,6 +9,8 @@ Full command reference for all `opensea` CLI commands.
 --chain <chain>     Default chain (default: ethereum)
 --format <format>   Output format: json, table, or toon (default: json)
 --base-url <url>    API base URL override (for testing against staging or proxies)
+--allow-untrusted-base-url
+                    Sign transactions built by a --base-url that is not an OpenSea API origin
 --timeout           Request timeout in milliseconds (default: 30000)
 --verbose           Log request and response info to stderr
 --no-auth-refresh   Do not refresh an expired or rejected stored wallet auth token
@@ -20,6 +22,16 @@ before or after the subcommand. The `ethereum` default never does: a chain
 filter you leave out filters nothing, and a command that needs a chain fails
 without one. `events list` has no chain filter and refuses a `--chain` you
 pass; use `events by-account --chain` or `events by-nft <chain>` instead.
+
+Commands that sign transactions the API builds (`swaps execute`, and
+`drops mint`, `drops deploy`, `drops publish`, `drops unpublish` and
+`collections set-creator-fee-enforcement` with `--send`) refuse to sign when
+`--base-url` is not `https://api.opensea.io` or
+`https://testnets-api.opensea.io`, since that server picks where the funds go.
+Pass `--allow-untrusted-base-url` only for a server you trust with the wallet.
+`swaps execute` also refuses a quote with a transaction on a chain other than
+`--from-chain` or `--to-chain`, native value when `--from-address` is not the
+native token, or native value above `--quantity`.
 
 ## Authentication
 
