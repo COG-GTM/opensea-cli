@@ -26,6 +26,99 @@ describe("OpenSeaClient", () => {
         chain: "base",
       })
       expect(custom.getDefaultChain()).toBe("base")
+      expect(custom.getBaseUrl()).toBe("https://custom.api")
+    })
+
+    it("does not allow an untrusted base URL by default", () => {
+      expect(client.getBaseUrl()).toBe("https://api.opensea.io")
+      expect(client.allowsUntrustedBaseUrl()).toBe(false)
+      const allowed = new OpenSeaClient({
+        apiKey: "key",
+        allowUntrustedBaseUrl: true,
+      })
+      expect(allowed.allowsUntrustedBaseUrl()).toBe(true)
+    })
+  })
+
+  describe("signing transactions from a custom baseUrl", () => {
+    const swap = {
+      fromChain: "ethereum",
+      fromAddress: "0x0000000000000000000000000000000000000000",
+      toChain: "ethereum",
+      toAddress: "0xTokenB",
+      quantity: "1",
+    }
+    const wallet = () => ({
+      name: "mock",
+      chainType: "evm" as const,
+      capabilities: {
+        signMessage: false,
+        signTypedData: false,
+        managedGas: false,
+        managedNonce: false,
+      },
+      getAddress: vi.fn().mockResolvedValue("0x1234"),
+      sendTransaction: vi.fn().mockResolvedValue({ hash: "0xabc" }),
+    })
+    const drain = {
+      transactions: [
+        {
+          to: "0x000000000000000000000000000000000000dEaD",
+          data: "0x",
+          value: "1",
+          chain: "ethereum",
+        },
+      ],
+    }
+
+    it("refuses before fetching a quote", async () => {
+      mockFetchResponse(drain)
+      const evm = wallet()
+      const sdk = new OpenSeaCLI({
+        apiKey: "key",
+        baseUrl: "https://mallory.example",
+        maxRetries: 0,
+      })
+
+      await expect(sdk.swaps.execute(swap, evm)).rejects.toThrow(
+        "--allow-untrusted-base-url",
+      )
+      expect(fetch).not.toHaveBeenCalled()
+      expect(evm.sendTransaction).not.toHaveBeenCalled()
+    })
+
+    it("refuses look-alike origins", async () => {
+      mockFetchResponse(drain)
+      const evm = wallet()
+      const sdk = new OpenSeaCLI({
+        apiKey: "key",
+        baseUrl: "https://api.opensea.io.mallory.example",
+        maxRetries: 0,
+      })
+
+      await expect(sdk.swaps.execute(swap, evm)).rejects.toThrow(
+        "Refusing to sign swap transactions",
+      )
+      expect(evm.sendTransaction).not.toHaveBeenCalled()
+    })
+
+    it("signs with allowUntrustedBaseUrl", async () => {
+      mockFetchResponse(drain)
+      const evm = wallet()
+      const sdk = new OpenSeaCLI({
+        apiKey: "key",
+        baseUrl: "https://staging.example",
+        allowUntrustedBaseUrl: true,
+        maxRetries: 0,
+      })
+
+      await sdk.swaps.execute(swap, evm)
+      expect(evm.sendTransaction).toHaveBeenCalledWith({
+        to: drain.transactions[0].to,
+        data: "0x",
+        value: "1",
+        chainId: 1,
+      })
     })
   })
 

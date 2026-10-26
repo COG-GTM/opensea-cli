@@ -363,6 +363,11 @@ export function dropsCommand(
       "Sign and send the transaction with the configured EVM wallet, which pays; --minter receives the tokens",
     )
     .option(
+      "--max-value <wei>",
+      "Most wei the --send mint transaction may pay (the drop's price times --quantity); a mint that pays more is refused. Defaults to 0, a free mint",
+      "0",
+    )
+    .option(
       "--wallet-provider <provider>",
       `Wallet provider to use with --send (${WALLET_PROVIDERS.join(", ")})`,
     )
@@ -372,11 +377,18 @@ export function dropsCommand(
         options: {
           minter: string
           quantity: string
+          maxValue: string
           send?: boolean
           walletProvider?: string
         },
       ) => {
         const quantity = parseIntOption(options.quantity, "--quantity")
+        if (!/^\d+$/.test(options.maxValue)) {
+          throw new Error(
+            `--max-value must be an integer amount in wei, got "${options.maxValue}"`,
+          )
+        }
+        const maxValue = BigInt(options.maxValue)
         const drops = new DropsAPI(getClient())
         const format = getFormat()
         if (!options.send) {
@@ -396,12 +408,17 @@ export function dropsCommand(
           `Minting ${quantity} from ${address} to minter ${options.minter}`,
         )
         const tx = await drops.mint(slug, { minter: options.minter, quantity })
-        const result = await drops.sendMintTransaction(tx, wallet, {
-          onSending: sending =>
-            console.error(
-              `Sending mint transaction to ${sending.to} on chain ${sending.chain} (${sending.chainId})...`,
-            ),
-        })
+        const result = await drops.sendMintTransaction(
+          tx,
+          wallet,
+          {
+            onSending: sending =>
+              console.error(
+                `Sending mint transaction to ${sending.to} on chain ${sending.chain} (${sending.chainId})...`,
+              ),
+          },
+          { maxValue },
+        )
         console.log(
           formatOutput(
             {
@@ -527,6 +544,7 @@ export function dropsCommand(
                 `Sending deploy transaction to ${sending.to} on chain ${sending.chain} (${sending.chainId})...`,
               ),
           },
+          { chain },
         )
         console.log(
           formatOutput({ hash: result.hash, chain: tx.chain }, format),

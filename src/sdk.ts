@@ -443,8 +443,10 @@ export class CollectionsAPI {
    * Sign and send collection transactions in order, one at a time. Refuses
    * the whole list before sending anything when the wallet is not every
    * transaction's `from`, since a transaction from any other address
-   * reverts. `onSent` fires after each send, so a caller can report the
-   * hashes already onchain when a later send fails.
+   * reverts, when any transaction sends value or is on another chain than
+   * the first, or when the client's API is not a trusted OpenSea origin.
+   * `onSent` fires after each send, so a caller can report the hashes
+   * already onchain when a later send fails.
    */
   async sendTransactions(
     txs: CollectionTransactionResponse[],
@@ -455,6 +457,7 @@ export class CollectionsAPI {
     },
   ): Promise<TransactionResult[]> {
     const evmWallet = requireEvmAdapter(wallet, "collection transactions")
+    assertTrustedTransactionSource(this.client, "collection")
     const address = (await evmWallet.getAddress()).toLowerCase()
     const foreign = txs.find(tx => tx.from.toLowerCase() !== address)
     if (foreign) {
@@ -462,9 +465,18 @@ export class CollectionsAPI {
         `Wallet ${address} is not the contract owner ${foreign.from}. The transaction must be sent from ${foreign.from}, or it reverts.`,
       )
     }
+    // Owner configuration calls move no funds, and all of them are checked
+    // before the first is sent.
+    const expected = { chain: txs[0]?.chain, maxValue: 0n }
+    for (const tx of txs) checkDropTransaction(tx, expected)
     const results: TransactionResult[] = []
     for (const tx of txs) {
-      const result = await sendDropTransaction(evmWallet, tx, callbacks)
+      const result = await sendDropTransaction(
+        evmWallet,
+        tx,
+        expected,
+        callbacks,
+      )
       callbacks?.onSent?.(result)
       results.push(result)
     }
@@ -477,6 +489,94 @@ export class CollectionsAPI {
   }
 }
 
+/** API origins whose transactions are signed without `allowUntrustedBaseUrl`. */
+const TRUSTED_API_ORIGINS = new Set(["https://api.opensea.io"])
+
+const NATIVE_TOKEN_ADDRESSES = new Set([
+  "0x0000000000000000000000000000000000000000",
+  "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+])
+
+/**
+ * Refuse to sign transactions built by an API outside `TRUSTED_API_ORIGINS`
+ * unless the client was created with `allowUntrustedBaseUrl`. Such an API
+ * chooses every `to`, `data`, `value` and chain the wallet signs.
+ */
+function assertTrustedTransactionSource(
+  client: OpenSeaClient,
+  action: string,
+): void {
+  if (client.allowsUntrustedBaseUrl()) return
+  const baseUrl = client.getBaseUrl()
+  let origin: string | undefined
+  try {
+    origin = new URL(baseUrl).origin
+  } catch {
+    origin = undefined
+  }
+  if (origin === undefined || !TRUSTED_API_ORIGINS.has(origin)) {
+    throw new Error(
+      `Refusing to sign ${action} transactions built by ${baseUrl}: only ${[...TRUSTED_API_ORIGINS].join(", ")} is trusted to build transactions. Pass --allow-untrusted-base-url (SDK: allowUntrustedBaseUrl) to sign them anyway.`,
+    )
+  }
+}
+
+/** Parse a decimal or hex wei amount from the API as a non-negative bigint. */
+function parseWei(value: string | number | null | undefined, what: string) {
+  let wei: bigint
+  try {
+    wei = BigInt(value ?? 0)
+  } catch {
+    throw new Error(`${what} has an invalid value: ${value}`)
+  }
+  if (wei < 0n) throw new Error(`${what} has an invalid value: ${value}`)
+  return wei
+}
+
+/** What a drop or collection transaction must match before it is signed. */
+interface DropTransactionExpectation {
+  /** Chain the transaction must be on. */
+  chain?: string
+  /** Address the transaction must be sent to. */
+  to?: string
+  /** Most wei the transaction may send. */
+  maxValue?: bigint
+}
+
+/**
+ * Check a drop transaction against `expected` and return the chain id and
+ * decimal wei value to send it with. Throws without sending on a mismatch.
+ */
+function checkDropTransaction(
+  tx: { to: string; value: string; chain: string },
+  expected: DropTransactionExpectation,
+): { chainId: number; value: string } {
+  const value = parseWei(tx.value, "Drop transaction")
+  const chainId = resolveChainId(tx.chain)
+  if (
+    expected.chain !== undefined &&
+    chainId !== resolveChainId(expected.chain)
+  ) {
+    throw new Error(
+      `Refusing to sign: the API built this transaction for chain ${tx.chain}, not ${expected.chain}.`,
+    )
+  }
+  if (
+    expected.to !== undefined &&
+    tx.to.toLowerCase() !== expected.to.toLowerCase()
+  ) {
+    throw new Error(
+      `Refusing to sign: the API built this transaction for ${tx.to}, not ${expected.to}.`,
+    )
+  }
+  if (expected.maxValue !== undefined && value > expected.maxValue) {
+    throw new Error(
+      `Refusing to sign: the transaction sends ${value} wei, more than the expected ${expected.maxValue} wei.`,
+    )
+  }
+  return { chainId, value: value.toString() }
+}
+
 /**
  * Send a drop transaction from `wallet`. Drop endpoints return `value` as
  * decimal or hex wei; the wallet gets decimal wei either way.
@@ -484,17 +584,12 @@ export class CollectionsAPI {
 function sendDropTransaction(
   wallet: EvmWalletAdapter,
   tx: { to: string; data: string; value: string; chain: string },
+  expected: DropTransactionExpectation,
   callbacks?: {
     onSending?: (tx: { to: string; chain: string; chainId: number }) => void
   },
 ): Promise<TransactionResult> {
-  let value: string
-  try {
-    value = BigInt(tx.value).toString()
-  } catch {
-    throw new Error(`Drop transaction has an invalid value: ${tx.value}`)
-  }
-  const chainId = resolveChainId(tx.chain)
+  const { chainId, value } = checkDropTransaction(tx, expected)
   callbacks?.onSending?.({ to: tx.to, chain: tx.chain, chainId })
   return wallet.sendTransaction({ to: tx.to, data: tx.data, value, chainId })
 }
@@ -646,7 +741,9 @@ export class DropsAPI {
    * `sender` the deploy was requested for; a wallet with any other address is
    * refused, since the API built the deploy for that address. The deploy
    * response carries `value` as hex wei, and it is passed to the wallet as
-   * decimal wei like every other drop transaction.
+   * decimal wei like every other drop transaction. Pass `expected.chain`, the
+   * chain the deploy was requested on, to refuse a transaction for any other
+   * chain.
    */
   async sendDeployTransaction(
     tx: DropDeployResponse,
@@ -655,8 +752,10 @@ export class DropsAPI {
     callbacks?: {
       onSending?: (tx: { to: string; chain: string; chainId: number }) => void
     },
+    expected?: { chain?: string },
   ): Promise<TransactionResult> {
     const evmWallet = requireEvmAdapter(wallet, "drop deploy")
+    assertTrustedTransactionSource(this.client, "drop deploy")
     const address = await evmWallet.getAddress()
     if (address.toLowerCase() !== sender.toLowerCase()) {
       throw new Error(
@@ -669,12 +768,19 @@ export class DropsAPI {
         "This deploy is a contract-creation transaction with no `to` address, which the wallet adapters cannot send yet. Run without --send and broadcast it with no `to` from your own wallet, or deploy with token_type erc721_clone.",
       )
     }
-    return sendDropTransaction(evmWallet, { ...tx, to }, callbacks)
+    return sendDropTransaction(
+      evmWallet,
+      { ...tx, to },
+      { chain: expected?.chain },
+      callbacks,
+    )
   }
 
   /**
    * Sign and send a mint transaction built by `mint`. Any EVM wallet can send
-   * it: the request's `minter` receives the tokens, whoever pays.
+   * it: the request's `minter` receives the tokens, whoever pays. Pass
+   * `expected` to refuse a transaction for another chain or contract, or one
+   * that pays more than `maxValue` wei (the drop's price times the quantity).
    */
   async sendMintTransaction(
     tx: DropMintResponse,
@@ -682,9 +788,11 @@ export class DropsAPI {
     callbacks?: {
       onSending?: (tx: { to: string; chain: string; chainId: number }) => void
     },
+    expected?: { chain?: string; to?: string; maxValue?: bigint },
   ): Promise<TransactionResult> {
     const evmWallet = requireEvmAdapter(wallet, "drop mint")
-    return sendDropTransaction(evmWallet, tx, callbacks)
+    assertTrustedTransactionSource(this.client, "drop mint")
+    return sendDropTransaction(evmWallet, tx, expected ?? {}, callbacks)
   }
 
   /**
@@ -745,7 +853,7 @@ export class DropsAPI {
    * Sign and send a publish or unpublish transaction. Refuses a wallet whose
    * address is not the transaction's `from`: the API sets `from` to the
    * contract's onchain owner, and a transaction from any other address
-   * reverts.
+   * reverts. Refuses a transaction that sends value.
    */
   async sendTransaction(
     tx: DropTransactionResponse,
@@ -755,13 +863,15 @@ export class DropsAPI {
     },
   ): Promise<TransactionResult> {
     const evmWallet = requireEvmAdapter(wallet, "drop transactions")
+    assertTrustedTransactionSource(this.client, "drop")
     const address = await evmWallet.getAddress()
     if (address.toLowerCase() !== tx.from.toLowerCase()) {
       throw new Error(
         `Wallet ${address} is not the contract owner ${tx.from}. The transaction must be sent from ${tx.from}, or it reverts.`,
       )
     }
-    return sendDropTransaction(evmWallet, tx, callbacks)
+    // Publishing and unpublishing move no funds.
+    return sendDropTransaction(evmWallet, tx, { maxValue: 0n }, callbacks)
   }
 
   /** Start uploading the drop's item media and metadata to IPFS. */
@@ -2023,6 +2133,72 @@ class SearchAPI {
   }
 }
 
+type SwapQuoteTransaction = NonNullable<
+  SwapQuoteResponse["transactions"]
+>[number]
+
+/**
+ * Check every transaction of a swap quote against the swap that was asked for,
+ * before any is sent: each must be on the from or to chain, and together they
+ * may send at most `quantity` wei of native currency, all on the from chain,
+ * when the source token is native, and none otherwise. Returns the `to`,
+ * chain id and decimal wei value to send each transaction with; transactions
+ * without a `to` are left out.
+ */
+function checkSwapTransactions(
+  options: {
+    fromChain: string
+    fromAddress: string
+    toChain: string
+    quantity: string
+  },
+  transactions: SwapQuoteTransaction[],
+): Map<SwapQuoteTransaction, { to: string; chainId: number; value: string }> {
+  const fromChainId = resolveChainId(options.fromChain)
+  const toChainId = resolveChainId(options.toChain)
+  const nativeSource = NATIVE_TOKEN_ADDRESSES.has(
+    options.fromAddress.toLowerCase(),
+  )
+  let budget = 0n
+  if (nativeSource) {
+    if (!/^\d+$/.test(options.quantity)) {
+      throw new Error(
+        `Swap quantity must be an integer amount in wei, got "${options.quantity}"`,
+      )
+    }
+    budget = BigInt(options.quantity)
+  }
+
+  const checked = new Map<
+    SwapQuoteTransaction,
+    { to: string; chainId: number; value: string }
+  >()
+  let total = 0n
+  for (const tx of transactions) {
+    if (!tx.to) continue
+    const chainId = resolveChainId(tx.chain)
+    if (chainId !== fromChainId && chainId !== toChainId) {
+      throw new Error(
+        `Refusing to sign swap: the quote has a transaction for chain ${tx.chain}, which is neither --from-chain ${options.fromChain} nor --to-chain ${options.toChain}.`,
+      )
+    }
+    const value = parseWei(tx.value, "Swap transaction")
+    if (value > 0n && (!nativeSource || chainId !== fromChainId)) {
+      throw new Error(
+        `Refusing to sign swap: a transaction to ${tx.to} on ${tx.chain} sends ${value} wei of native currency, but the swap spends ${nativeSource ? `native currency only on ${options.fromChain}` : `token ${options.fromAddress}`}.`,
+      )
+    }
+    total += value
+    if (total > budget) {
+      throw new Error(
+        `Refusing to sign swap: the quote's transactions send ${total} wei of native currency, more than the requested quantity ${budget}.`,
+      )
+    }
+    checked.set(tx, { to: tx.to, chainId, value: value.toString() })
+  }
+  return checked
+}
+
 export class SwapsAPI {
   constructor(private client: OpenSeaClient) {}
 
@@ -2081,6 +2257,7 @@ export class SwapsAPI {
     // Rejects a Solana wallet here rather than failing later on a missing `sendTransaction`,
     // and before the quote request. Matches how the x402 scheme guards its own boundary.
     const evmWallet = requireEvmAdapter(wallet, "swap execution")
+    assertTrustedTransactionSource(this.client, "swap")
 
     const address = options.address ?? (await evmWallet.getAddress())
     const quote = await this.quote({ ...options, address })
@@ -2093,22 +2270,24 @@ export class SwapsAPI {
       )
     }
 
+    const toSend = checkSwapTransactions(options, quote.transactions)
     const results: TransactionResult[] = []
 
     for (const tx of quote.transactions) {
-      if (!tx.to) {
+      const checked = toSend.get(tx)
+      if (!checked) {
         callbacks?.onSkipped?.({
           chain: tx.chain,
           reason: "missing 'to' address",
         })
         continue
       }
-      const chainId = resolveChainId(tx.chain)
-      callbacks?.onSending?.({ to: tx.to, chain: tx.chain, chainId })
+      const { to, chainId, value } = checked
+      callbacks?.onSending?.({ to, chain: tx.chain, chainId })
       const result = await evmWallet.sendTransaction({
-        to: tx.to,
+        to,
         data: tx.data,
-        value: tx.value ?? "0",
+        value,
         chainId,
       })
       results.push(result)

@@ -9,10 +9,16 @@ Full command reference for all `opensea` CLI commands.
 --chain <chain>     Default chain (default: ethereum)
 --format <format>   Output format: json, table, or toon (default: json)
 --base-url <url>    API base URL override (for testing against staging or proxies)
+--allow-untrusted-base-url  Sign transactions built by a --base-url other than https://api.opensea.io
 --timeout           Request timeout in milliseconds (default: 30000)
 --verbose           Log request and response info to stderr
 --no-auth-refresh   Do not refresh an expired or rejected stored wallet auth token
 ```
+
+Commands that sign API-built transactions (`swaps execute`, and `--send` on
+drop and collection commands) refuse to sign when `--base-url` is not
+`https://api.opensea.io`, since that API chooses every recipient, value and
+chain the wallet signs. Pass `--allow-untrusted-base-url` to sign anyway.
 
 A `--chain` you pass reaches every subcommand that takes `--chain` (such as
 `collections list`, `events by-account` or `drops deploy`), whether you put it
@@ -244,7 +250,7 @@ The action commands work across EVM chains and Solana. For Solana, preserve base
 opensea drops list [--type <type>] [--chains <chains>] [--limit <n>] [--next <cursor>]
 opensea drops get <slug>
 opensea drops items <slug> [--limit <n>] [--next <cursor>]
-opensea drops mint <slug> --minter <address> [--quantity <n>] [--send] [--wallet-provider <provider>]
+opensea drops mint <slug> --minter <address> [--quantity <n>] [--send] [--max-value <wei>] [--wallet-provider <provider>]
 opensea drops cross-chain-mint <slug> --payer <address> --minter <address> --payment-chain <chain> --payment-token <address> [--quantity <n>]
 ```
 
@@ -254,7 +260,9 @@ token with `write:drops` from a collection editor.
 `mint` prints a ready-to-sign transaction. With `--send` it signs and sends it
 with the configured EVM wallet, which pays, and prints the hash, the chain, the
 sending wallet and the minter. The wallet does not have to be the minter:
-`--minter` receives the tokens either way.
+`--minter` receives the tokens either way. `--send` refuses a transaction that
+pays more than `--max-value` wei (default `0`, a free mint): pass the drop's
+price times `--quantity` for a paid mint.
 
 Cross-chain minting returns ordered transactions plus `receipt_request`.
 Submit the transactions in order, save `receipt_request` unchanged to a JSON

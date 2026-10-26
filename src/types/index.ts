@@ -3,6 +3,12 @@ export type * from "./api.js"
 export interface OpenSeaClientConfig {
   apiKey: string
   baseUrl?: string
+  /**
+   * Sign transactions built by an API at a `baseUrl` other than
+   * `https://api.opensea.io`. Off by default: such an API controls every
+   * `to`, `data`, `value` and chain the wallet is asked to sign.
+   */
+  allowUntrustedBaseUrl?: boolean
   chain?: string
   timeout?: number
   verbose?: boolean
