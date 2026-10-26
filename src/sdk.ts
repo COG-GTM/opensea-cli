@@ -2067,13 +2067,12 @@ function checkSwapTransactions(
   )
   let budget: bigint | undefined
   if (nativeSource) {
-    try {
-      budget = BigInt(options.quantity)
-    } catch {
+    if (!/^\d+$/.test(options.quantity)) {
       throw new Error(
         `Swap quantity must be an integer amount in smallest units, got ${options.quantity}`,
       )
     }
+    budget = BigInt(options.quantity)
   }
   let spent = 0n
   return txs.map(tx => {

@@ -332,6 +332,23 @@ export class OpenSeaClient {
         console.error(`[verbose] ${response.status} ${response.statusText}`)
       }
 
+      // Signing trusts responses from an OpenSea origin, so don't let a
+      // redirect hand that trust to another server.
+      if (
+        response.redirected &&
+        isTrustedSiweOrigin(this.baseUrl) &&
+        !isTrustedSiweOrigin(response.url)
+      ) {
+        try {
+          await response.body?.cancel()
+        } catch {
+          // Stream may already be disturbed
+        }
+        throw new Error(
+          `Refusing response from ${response.url}: ${path} was redirected away from the OpenSea API.`,
+        )
+      }
+
       if (response.ok) {
         return response
       }

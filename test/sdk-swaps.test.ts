@@ -472,6 +472,22 @@ describe("SwapsAPI.execute checks quote transactions before signing", () => {
     expect(wallet.sendTransaction).not.toHaveBeenCalled()
   })
 
+  it.each([
+    "0x56bc75e2d63100000",
+    "",
+    " 1000",
+  ])("refuses a native quantity %j that is not a decimal integer", async quantity => {
+    const wallet = createMockWallet()
+    mockGet.mockResolvedValue({
+      transactions: [{ to: ROUTER, data: "0x", value: "1", chain: "base" }],
+    })
+
+    await expect(
+      sdk.swaps.execute({ ...nativeSwap, quantity }, wallet),
+    ).rejects.toThrow("Swap quantity must be an integer amount")
+    expect(wallet.sendTransaction).not.toHaveBeenCalled()
+  })
+
   it("refuses before quoting when the API origin is not trusted", async () => {
     const wallet = createMockWallet()
     vi.mocked(

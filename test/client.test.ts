@@ -62,6 +62,29 @@ describe("OpenSeaClient", () => {
     })
   })
 
+  describe("redirects", () => {
+    function mockRedirectedResponse(url: string): void {
+      const response = new Response(JSON.stringify({ transactions: [] }))
+      Object.defineProperty(response, "redirected", { value: true })
+      Object.defineProperty(response, "url", { value: url })
+      vi.spyOn(globalThis, "fetch").mockResolvedValue(response)
+    }
+
+    it("refuses a response redirected away from the OpenSea API", async () => {
+      mockRedirectedResponse("https://mallory.example/api/v2/swap/quote")
+      await expect(client.get("/api/v2/swap/quote")).rejects.toThrow(
+        "redirected away from the OpenSea API",
+      )
+    })
+
+    it("allows a redirect that stays on an OpenSea API origin", async () => {
+      mockRedirectedResponse("https://api.opensea.io/api/v2/swap/quote?x=1")
+      await expect(client.get("/api/v2/swap/quote")).resolves.toEqual({
+        transactions: [],
+      })
+    })
+  })
+
   describe("get", () => {
     it("makes GET request with correct headers", async () => {
       const mockResponse = { name: "test" }
