@@ -180,6 +180,18 @@ describe("subcommand --chain through the full program", () => {
       expect(requestedUrl().searchParams.get("chain")).toBe("scroll")
     })
 
+    it.each([
+      ["after the subcommand", ["collections", "list", "--chain", "taiko"]],
+      ["before the subcommand", ["--chain", "taiko", "collections", "list"]],
+    ])("sends --chain taiko %s", async (_, argv) => {
+      respondWith({})
+
+      await run(...argv)
+
+      expect(requestedUrl().pathname).toBe("/api/v2/collections")
+      expect(requestedUrl().searchParams.get("chain")).toBe("taiko")
+    })
+
     it("does not send the program's default chain as a filter", async () => {
       respondWith({})
 

@@ -19,6 +19,9 @@ opensea collections stats tiny-dinos-eth
 
 # Get collection traits
 opensea collections traits tiny-dinos-eth
+
+# List collections on Taiko (chain id 167000)
+opensea collections list --chain taiko --limit 2
 ```
 
 ## NFTs

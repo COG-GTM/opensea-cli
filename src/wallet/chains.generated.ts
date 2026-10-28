@@ -36,6 +36,7 @@ export const CHAIN_IDS: Record<string, number> = {
   bera_chain: 80094,
   berachain: 80094,
   blast: 81457,
+  taiko: 167000,
   scroll: 534352,
   zora: 7777777,
 }

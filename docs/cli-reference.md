@@ -26,6 +26,10 @@ and API filters such as `collections list --chain` take the slug only. Only
 wallet transaction sending resolves the chain to an EVM chain id (`scroll` is
 `534352`), and only there is a numeric chain id also accepted.
 
+Chain names are the OpenSea chain slugs (for example `ethereum`, `base`,
+`taiko`). Wallet commands resolve them to EVM chain ids with
+`resolveChainId`, e.g. `taiko` is `167000`.
+
 ## Authentication
 
 ```bash
