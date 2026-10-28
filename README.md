@@ -146,6 +146,7 @@ opensea --chain mode collections list --limit 2
 # Filter collections by Gnosis (chain id 100)
 opensea --chain gnosis collections list --limit 2
 ```
+Global options: `--api-key`, `--chain` (default: ethereum), `--format` (json/table/toon), `--base-url`. A `--chain` you pass, before or after the subcommand, reaches subcommands that take `--chain`; the `ethereum` default never does. Example: `opensea collections list --chain lisk` (Lisk, chain id 1135).
 
 ## Programmatic SDK
 

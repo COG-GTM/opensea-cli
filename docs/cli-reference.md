@@ -53,6 +53,11 @@ opensea --chain moonbeam collections list --limit 2
 opensea collections list --chain moonbeam --limit 2
 ```
 
+```bash
+# Filter by a specific chain, e.g. Lisk (chain id 1135)
+opensea --chain lisk collections list --limit 2
+```
+
 ## Authentication
 
 ```bash
