@@ -104,6 +104,9 @@ opensea tokens trending --limit 5
 # Get materialized token activity for selected windows
 opensea tokens activity-stats base 0x4200000000000000000000000000000000000006 --windows 1h,24h
 
+# List collections on Moonbeam (chain id 1284)
+opensea --chain moonbeam collections list --limit 2
+
 # Human-readable table output
 opensea --format table collections stats mfers
 ```

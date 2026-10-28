@@ -11,6 +11,9 @@ opensea collections get tiny-dinos-eth
 # List collections with a limit
 opensea collections list --limit 2
 
+# List collections on Moonbeam (chain id 1284); --chain also works before the subcommand
+opensea collections list --chain moonbeam --limit 2
+
 # Get collection stats (volume, floor price, etc.)
 opensea collections stats tiny-dinos-eth
 

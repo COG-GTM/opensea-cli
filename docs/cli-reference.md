@@ -21,6 +21,14 @@ filter you leave out filters nothing, and a command that needs a chain fails
 without one. `events list` has no chain filter and refuses a `--chain` you
 pass; use `events by-account --chain` or `events by-nft <chain>` instead.
 
+`--chain` takes a chain name or its numeric chain ID. For example, Moonbeam
+(chain ID 1284):
+
+```bash
+opensea --chain moonbeam collections list --limit 2
+opensea collections list --chain moonbeam --limit 2
+```
+
 ## Authentication
 
 ```bash
