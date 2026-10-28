@@ -21,6 +21,13 @@ filter you leave out filters nothing, and a command that needs a chain fails
 without one. `events list` has no chain filter and refuses a `--chain` you
 pass; use `events by-account --chain` or `events by-nft <chain>` instead.
 
+`--chain` takes the API chain slug, for example `cronos` (Cronos, chain id 25):
+
+```bash
+opensea --chain cronos collections list --limit 2
+opensea collections list --chain cronos --limit 2
+```
+
 ## Authentication
 
 ```bash

@@ -132,6 +132,12 @@ This table is a high-level summary; run `opensea --help` for the current command
 
 Global options: `--api-key`, `--chain` (default: ethereum), `--format` (json/table/toon), `--base-url`. A `--chain` you pass, before or after the subcommand, reaches subcommands that take `--chain`; the `ethereum` default never does.
 
+Pass a chain by its API slug, e.g. Cronos (chain id 25):
+
+```bash
+opensea --chain cronos collections list --limit 2
+```
+
 ## Programmatic SDK
 
 ```typescript
