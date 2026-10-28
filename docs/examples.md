@@ -11,6 +11,9 @@ opensea collections get tiny-dinos-eth
 # List collections with a limit
 opensea collections list --limit 2
 
+# List collections on Scroll (chain id 534352)
+opensea collections list --chain scroll --limit 2
+
 # Get collection stats (volume, floor price, etc.)
 opensea collections stats tiny-dinos-eth
 
