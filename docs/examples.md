@@ -11,41 +11,41 @@ opensea collections get tiny-dinos-eth
 # List collections with a limit
 opensea collections list --limit 2
 
-# List collections on Scroll (chain id 534352)
-opensea collections list --chain scroll --limit 2
-
-# List collections on Mode (chain id 34443)
-opensea collections list --chain mode --limit 2
+# List collections on Cronos (chain id 25)
+opensea collections list --chain cronos --limit 2
 
 # List collections on Gnosis (chain id 100)
 opensea collections list --chain gnosis --limit 2
 
+# List collections on World Chain (chain id 480)
+opensea collections list --chain world_chain --limit 2
+
+# List collections on Lisk (chain id 1135)
+opensea collections list --chain lisk --limit 2
+
 # List collections on Moonbeam (chain id 1284); --chain also works before the subcommand
 opensea collections list --chain moonbeam --limit 2
 
-# List collections on a specific chain (Lisk, chain id 1135)
-opensea collections list --chain lisk --limit 2
-
-# List World Chain collections (chain ID 480)
-opensea collections list --chain world_chain --limit 2
-
 # List collections on Kaia (chain id 8217)
-opensea --chain kaia collections list --limit 2
+opensea collections list --chain kaia --limit 2
+
+# List collections on Mode (chain id 34443)
+opensea collections list --chain mode --limit 2
 
 # List collections on BOB (chain id 60808)
 opensea collections list --chain bob --limit 2
 
-# List collections on Cronos (chain id 25)
-opensea collections list --chain cronos --limit 2
+# List collections on Taiko (chain id 167000)
+opensea collections list --chain taiko --limit 2
+
+# List collections on Scroll (chain id 534352)
+opensea collections list --chain scroll --limit 2
 
 # Get collection stats (volume, floor price, etc.)
 opensea collections stats tiny-dinos-eth
 
 # Get collection traits
 opensea collections traits tiny-dinos-eth
-
-# List collections on Taiko (chain id 167000)
-opensea collections list --chain taiko --limit 2
 ```
 
 ## NFTs

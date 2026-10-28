@@ -23,65 +23,31 @@ pass; use `events by-account --chain` or `events by-nft <chain>` instead.
 
 `<chain>` is an OpenSea chain slug such as `ethereum`, `base` or `scroll`,
 and API filters such as `collections list --chain` take the slug only. Only
-wallet transaction sending resolves the chain to an EVM chain id (`scroll` is
-`534352`), and only there is a numeric chain id also accepted.
+wallet transaction sending resolves the chain to an EVM chain id (with
+`resolveChainId`, e.g. `scroll` is `534352`), and only there is a numeric chain
+id also accepted.
 
-Chain names are the OpenSea chain slugs (for example `ethereum`, `base`,
-`taiko`). Wallet commands resolve them to EVM chain ids with
-`resolveChainId`, e.g. `taiko` is `167000`.
+| Chain | `--chain` slug | EVM chain id |
+| --- | --- | --- |
+| Cronos | `cronos` | 25 |
+| Gnosis | `gnosis` | 100 |
+| World Chain | `world_chain` (alias `worldchain`) | 480 |
+| Lisk | `lisk` | 1135 |
+| Moonbeam | `moonbeam` | 1284 |
+| Kaia | `kaia` | 8217 |
+| Mode | `mode` | 34443 |
+| BOB | `bob` | 60808 |
+| Taiko | `taiko` | 167000 |
+| Scroll | `scroll` | 534352 |
 
-Chains are named by their OpenSea slug, for example `ethereum`, `base` or
-`mode` (Mode, chain id 34443):
+`worldchain` is accepted as an alias only where the CLI resolves a chain to its
+numeric id.
 
 ```bash
 opensea --chain mode collections list --limit 2
-```
-
-`<chain>` is an OpenSea chain identifier such as `ethereum`, `base` or
-`gnosis` (Gnosis, chain id 100):
-
-```bash
-opensea collections list --chain gnosis --limit 2
-opensea --chain gnosis events by-account 0x0000000000000000000000000000000000000001 # DEMO PLACEHOLDER address
-```
-
-`--chain` takes a chain name or its numeric chain ID. For example, Moonbeam
-(chain ID 1284):
-
-```bash
-opensea --chain moonbeam collections list --limit 2
-opensea collections list --chain moonbeam --limit 2
-```
-
-```bash
-# Filter by a specific chain, e.g. Lisk (chain id 1135)
-opensea --chain lisk collections list --limit 2
-```
-
-`--chain` takes the OpenSea chain slug, for example `world_chain` for World
-Chain (chain ID 480; `worldchain` is accepted as an alias where the CLI resolves
-a chain to its numeric ID):
-
-```bash
-opensea --chain world_chain collections list --limit 2
-opensea events by-account 0x0000000000000000000000000000000000000001 --chain world_chain  # DEMO PLACEHOLDER address
-```
-
-Example: list collections on Kaia (chain id 8217). `resolveChainId("kaia")`
-returns `8217`.
-
-```bash
-opensea --chain kaia collections list --limit 2
-```
-
-`--chain` takes an OpenSea chain slug such as `ethereum`, `base` or `bob`
-(BOB, chain id `60808`). Wallet commands also accept the numeric chain id.
-
-`--chain` takes the API chain slug, for example `cronos` (Cronos, chain id 25):
-
-```bash
-opensea --chain cronos collections list --limit 2
 opensea collections list --chain cronos --limit 2
+opensea --chain gnosis events by-account 0x0000000000000000000000000000000000000001 # DEMO PLACEHOLDER address
+opensea events by-account 0x0000000000000000000000000000000000000001 --chain world_chain # DEMO PLACEHOLDER address
 ```
 
 ## Authentication

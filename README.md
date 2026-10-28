@@ -104,9 +104,6 @@ opensea tokens trending --limit 5
 # Get materialized token activity for selected windows
 opensea tokens activity-stats base 0x4200000000000000000000000000000000000006 --windows 1h,24h
 
-# List collections on Moonbeam (chain id 1284)
-opensea --chain moonbeam collections list --limit 2
-
 # Human-readable table output
 opensea --format table collections stats mfers
 ```
@@ -133,35 +130,24 @@ opensea --format table collections stats mfers
 
 This table is a high-level summary; run `opensea --help` for the current command list and [docs/cli-reference.md](docs/cli-reference.md) for the full reference.
 
-Global options: `--api-key`, `--chain` (default: ethereum), `--format` (json/table/toon), `--base-url`. A `--chain` you pass, before or after the subcommand, reaches subcommands that take `--chain`; the `ethereum` default never does. Pass the chain slug, such as `scroll`, e.g. `opensea --chain scroll collections list --limit 2`.
+Global options: `--api-key`, `--chain` (default: ethereum), `--format` (json/table/toon), `--base-url`. A `--chain` you pass, before or after the subcommand, reaches subcommands that take `--chain`; the `ethereum` default never does. Pass the OpenSea chain slug, e.g. `opensea --chain scroll collections list --limit 2`.
 
-`--chain` takes a chain name such as `base` or `taiko` (Taiko, chain id 167000), e.g. `opensea --chain taiko collections list --limit 2`.
+Chain slugs include:
 
-```bash
-# Filter collections on Mode (chain id 34443)
-opensea --chain mode collections list --limit 2
-```
+| Chain | `--chain` slug | EVM chain id |
+| --- | --- | --- |
+| Cronos | `cronos` | 25 |
+| Gnosis | `gnosis` | 100 |
+| World Chain | `world_chain` (alias `worldchain`) | 480 |
+| Lisk | `lisk` | 1135 |
+| Moonbeam | `moonbeam` | 1284 |
+| Kaia | `kaia` | 8217 |
+| Mode | `mode` | 34443 |
+| BOB | `bob` | 60808 |
+| Taiko | `taiko` | 167000 |
+| Scroll | `scroll` | 534352 |
 
-```bash
-# Filter collections by Gnosis (chain id 100)
-opensea --chain gnosis collections list --limit 2
-```
-Global options: `--api-key`, `--chain` (default: ethereum), `--format` (json/table/toon), `--base-url`. A `--chain` you pass, before or after the subcommand, reaches subcommands that take `--chain`; the `ethereum` default never does. Example: `opensea collections list --chain lisk` (Lisk, chain id 1135).
-
-```bash
-# World Chain (chain ID 480): world_chain, alias worldchain
-opensea --chain world_chain collections list --limit 2
-```
-
-Known chain names map to EVM chain ids in `CHAIN_IDS` (for example `kaia` = 8217), so `opensea --chain kaia collections list --limit 2` filters collections on Kaia.
-
-`--chain` takes an OpenSea chain slug, for example `opensea collections list --chain bob --limit 2` for BOB (chain id `60808`).
-
-Pass a chain by its API slug, e.g. Cronos (chain id 25):
-
-```bash
-opensea --chain cronos collections list --limit 2
-```
+Wallet transaction sending resolves the slug to its EVM chain id through `CHAIN_IDS`/`resolveChainId`; only there is a numeric chain id also accepted.
 
 ## Programmatic SDK
 

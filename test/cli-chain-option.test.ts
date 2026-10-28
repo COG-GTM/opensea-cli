@@ -17,6 +17,18 @@ import { createProgram } from "../src/program.js"
 // Parsing the subcommand alone can never catch that.
 
 const SENDER = "0xAbCdEf0000000000000000000000000000000001"
+const NEW_CHAINS = [
+  "cronos",
+  "gnosis",
+  "world_chain",
+  "lisk",
+  "moonbeam",
+  "kaia",
+  "mode",
+  "bob",
+  "taiko",
+  "scroll",
+]
 
 const deployArgs = [
   "--name",
@@ -168,130 +180,19 @@ describe("subcommand --chain through the full program", () => {
       expect(requestedUrl().searchParams.get("chain")).toBe("base")
     })
 
-    it.each([
-      ["after the subcommand", ["collections", "list", "--chain", "scroll"]],
-      ["before the subcommand", ["--chain", "scroll", "collections", "list"]],
-    ])("passes --chain scroll (%s) to the request", async (_, argv) => {
-      respondWith({})
+    describe.each(NEW_CHAINS)("--chain %s", chain => {
+      it.each([
+        ["after the subcommand", ["collections", "list", "--chain", chain]],
+        ["before the subcommand", ["--chain", chain, "collections", "list"]],
+      ])("placed %s reaches the request", async (_, argv) => {
+        respondWith({})
 
-      await run(...argv)
+        await run(...argv, "--limit", "2")
 
-      expect(requestedUrl().pathname).toBe("/api/v2/collections")
-      expect(requestedUrl().searchParams.get("chain")).toBe("scroll")
-    })
-
-    it.each([
-      ["after the subcommand", ["collections", "list", "--chain", "taiko"]],
-      ["before the subcommand", ["--chain", "taiko", "collections", "list"]],
-    ])("sends --chain taiko %s", async (_, argv) => {
-      respondWith({})
-
-      await run(...argv)
-
-      expect(requestedUrl().pathname).toBe("/api/v2/collections")
-      expect(requestedUrl().searchParams.get("chain")).toBe("taiko")
-    })
-
-    it.each([
-      ["after the subcommand", ["collections", "list", "--chain", "mode"]],
-      ["before the subcommand", ["--chain", "mode", "collections", "list"]],
-    ])("--chain mode %s filters by mode", async (_, argv) => {
-      respondWith({})
-
-      await run(...argv)
-
-      expect(requestedUrl().pathname).toBe("/api/v2/collections")
-      expect(requestedUrl().searchParams.get("chain")).toBe("mode")
-    })
-
-    it.each([
-      ["after the subcommand", ["collections", "list", "--chain", "gnosis"]],
-      ["before the subcommand", ["--chain", "gnosis", "collections", "list"]],
-    ])("sends --chain gnosis placed %s", async (_, argv) => {
-      respondWith({})
-
-      await run(...argv, "--limit", "2")
-
-      expect(requestedUrl().pathname).toBe("/api/v2/collections")
-      expect(requestedUrl().searchParams.get("chain")).toBe("gnosis")
-      expect(requestedUrl().searchParams.get("limit")).toBe("2")
-    })
-
-    it.each([
-      ["after the subcommand", ["collections", "list", "--chain", "moonbeam"]],
-      ["before the subcommand", ["--chain", "moonbeam", "collections", "list"]],
-    ])("sends --chain moonbeam placed %s", async (_, argv) => {
-      respondWith({})
-
-      await run(...argv)
-
-      expect(requestedUrl().pathname).toBe("/api/v2/collections")
-      expect(requestedUrl().searchParams.get("chain")).toBe("moonbeam")
-    })
-
-    it.each([
-      [["--chain", "lisk", "collections", "list"]],
-      [["collections", "list", "--chain", "lisk"]],
-    ])("%j sends chain=lisk", async argv => {
-      respondWith({})
-
-      await run(...argv)
-
-      expect(requestedUrl().pathname).toBe("/api/v2/collections")
-      expect(requestedUrl().searchParams.get("chain")).toBe("lisk")
-    })
-
-    it.each([
-      [
-        "after the subcommand",
-        ["collections", "list", "--chain", "world_chain"],
-      ],
-      [
-        "before the subcommand",
-        ["--chain", "world_chain", "collections", "list"],
-      ],
-    ])("sends --chain world_chain %s", async (_, argv) => {
-      respondWith({})
-
-      await run(...argv)
-
-      expect(requestedUrl().pathname).toBe("/api/v2/collections")
-      expect(requestedUrl().searchParams.get("chain")).toBe("world_chain")
-    })
-
-    it("collections list --chain kaia filters by kaia", async () => {
-      respondWith({})
-
-      await run("--chain", "kaia", "collections", "list", "--limit", "2")
-
-      expect(requestedUrl().pathname).toBe("/api/v2/collections")
-      expect(requestedUrl().searchParams.get("chain")).toBe("kaia")
-      expect(requestedUrl().searchParams.get("limit")).toBe("2")
-    })
-
-    it.each([
-      ["before the subcommand", ["--chain", "bob", "collections", "list"]],
-      ["after the subcommand", ["collections", "list", "--chain", "bob"]],
-    ])("sends --chain bob %s as the chain filter", async (_, argv) => {
-      respondWith({})
-
-      await run(...argv, "--limit", "2")
-
-      expect(requestedUrl().pathname).toBe("/api/v2/collections")
-      expect(requestedUrl().searchParams.get("chain")).toBe("bob")
-      expect(requestedUrl().searchParams.get("limit")).toBe("2")
-    })
-
-    it.each([
-      ["after the subcommand", ["collections", "list", "--chain", "cronos"]],
-      ["before the subcommand", ["--chain", "cronos", "collections", "list"]],
-    ])("--chain cronos placed %s reaches the request", async (_, argv) => {
-      respondWith({})
-
-      await run(...argv)
-
-      expect(requestedUrl().pathname).toBe("/api/v2/collections")
-      expect(requestedUrl().searchParams.get("chain")).toBe("cronos")
+        expect(requestedUrl().pathname).toBe("/api/v2/collections")
+        expect(requestedUrl().searchParams.get("chain")).toBe(chain)
+        expect(requestedUrl().searchParams.get("limit")).toBe("2")
+      })
     })
 
     it("does not send the program's default chain as a filter", async () => {
