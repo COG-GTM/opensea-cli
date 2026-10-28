@@ -132,6 +132,11 @@ This table is a high-level summary; run `opensea --help` for the current command
 
 Global options: `--api-key`, `--chain` (default: ethereum), `--format` (json/table/toon), `--base-url`. A `--chain` you pass, before or after the subcommand, reaches subcommands that take `--chain`; the `ethereum` default never does.
 
+```bash
+# Filter collections by Gnosis (chain id 100)
+opensea --chain gnosis collections list --limit 2
+```
+
 ## Programmatic SDK
 
 ```typescript
