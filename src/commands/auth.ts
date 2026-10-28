@@ -11,7 +11,11 @@ import {
   warnIfInlinePrivateKey,
 } from "../auth/private-key.js"
 import { refreshStoredToken } from "../auth/refresh.js"
-import { loginWithSiwe, refreshSiweSession } from "../auth/siwe-login.js"
+import {
+  assertTrustedSiweOrigin,
+  loginWithSiwe,
+  refreshSiweSession,
+} from "../auth/siwe-login.js"
 import {
   clearTokens,
   listTokens,
@@ -27,6 +31,7 @@ import { pathSegment } from "../parse.js"
 import type { WalletUnlinkResponse } from "../types/index.js"
 
 const DEFAULT_BASE_URL = "https://api.opensea.io"
+const LINK_WALLET_MESSAGE_TTL_MS = 5 * 60 * 1000
 
 /** Available scopes for OpenSea auth tokens, derived from the OpenAPI spec. */
 const SCOPES = AUTH_SCOPES.map(({ name, description }) => ({
@@ -191,7 +196,7 @@ export function authCommand(
     )
     .option(
       "--api-base-url <url>",
-      "API base URL (defaults to https://api.opensea.io)",
+      "API base URL: https://api.opensea.io (default) or https://testnets-api.opensea.io",
     )
     .action(
       async (opts: {
@@ -205,6 +210,14 @@ export function authCommand(
         apiBaseUrl?: string
         apiKey?: string
       }) => {
+        const apiBaseUrl = opts.apiBaseUrl ?? DEFAULT_BASE_URL
+        try {
+          assertTrustedSiweOrigin(apiBaseUrl)
+        } catch (error) {
+          console.error((error as Error).message)
+          process.exit(1)
+        }
+
         const authToken = opts.authToken ?? process.env.OPENSEA_AUTH_TOKEN
         if (!authToken) {
           console.error(
@@ -238,10 +251,11 @@ export function authCommand(
               chainArch: opts.chainArch,
               chainId: Number(opts.chainId),
               authBaseUrl: opts.authBaseUrl ?? DEFAULT_AUTH_BASE_URL,
-              apiBaseUrl: opts.apiBaseUrl ?? DEFAULT_BASE_URL,
+              apiBaseUrl,
               domain: opts.domain,
               uri: opts.uri,
               statement: opts.statement,
+              expirationTime: new Date(Date.now() + LINK_WALLET_MESSAGE_TTL_MS),
             },
           )
 
