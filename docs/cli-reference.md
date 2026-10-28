@@ -77,6 +77,13 @@ opensea --chain kaia collections list --limit 2
 `--chain` takes an OpenSea chain slug such as `ethereum`, `base` or `bob`
 (BOB, chain id `60808`). Wallet commands also accept the numeric chain id.
 
+`--chain` takes the API chain slug, for example `cronos` (Cronos, chain id 25):
+
+```bash
+opensea --chain cronos collections list --limit 2
+opensea collections list --chain cronos --limit 2
+```
+
 ## Authentication
 
 ```bash

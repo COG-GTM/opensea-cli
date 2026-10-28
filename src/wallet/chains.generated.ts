@@ -8,6 +8,7 @@ export const CHAIN_IDS: Record<string, number> = {
   ethereum: 1,
   mainnet: 1,
   optimism: 10,
+  cronos: 25,
   gnosis: 100,
   unichain: 130,
   polygon: 137,

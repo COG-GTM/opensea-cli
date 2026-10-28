@@ -157,6 +157,12 @@ Known chain names map to EVM chain ids in `CHAIN_IDS` (for example `kaia` = 8217
 
 `--chain` takes an OpenSea chain slug, for example `opensea collections list --chain bob --limit 2` for BOB (chain id `60808`).
 
+Pass a chain by its API slug, e.g. Cronos (chain id 25):
+
+```bash
+opensea --chain cronos collections list --limit 2
+```
+
 ## Programmatic SDK
 
 ```typescript
