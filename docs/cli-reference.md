@@ -21,6 +21,13 @@ filter you leave out filters nothing, and a command that needs a chain fails
 without one. `events list` has no chain filter and refuses a `--chain` you
 pass; use `events by-account --chain` or `events by-nft <chain>` instead.
 
+Example: list collections on Kaia (chain id 8217). `resolveChainId("kaia")`
+returns `8217`.
+
+```bash
+opensea --chain kaia collections list --limit 2
+```
+
 ## Authentication
 
 ```bash
