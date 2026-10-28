@@ -11,6 +11,9 @@ opensea collections get tiny-dinos-eth
 # List collections with a limit
 opensea collections list --limit 2
 
+# List collections on Gnosis (chain id 100)
+opensea collections list --chain gnosis --limit 2
+
 # Get collection stats (volume, floor price, etc.)
 opensea collections stats tiny-dinos-eth
 
@@ -100,6 +103,9 @@ opensea events by-nft ethereum 0xd9b78a2f1dafc8bb9c60961790d2beefebee56f4 1 --li
 
 # Get events for an account
 opensea events by-account 0x21130e908bba2d41b63fbca7caa131285b8724f8 --limit 2
+
+# Get an account's events on Gnosis (DEMO PLACEHOLDER address)
+opensea events by-account 0x0000000000000000000000000000000000000001 --chain gnosis --limit 2
 ```
 
 ## Search

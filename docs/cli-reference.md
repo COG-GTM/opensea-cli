@@ -21,6 +21,14 @@ filter you leave out filters nothing, and a command that needs a chain fails
 without one. `events list` has no chain filter and refuses a `--chain` you
 pass; use `events by-account --chain` or `events by-nft <chain>` instead.
 
+`<chain>` is an OpenSea chain identifier such as `ethereum`, `base` or
+`gnosis` (Gnosis, chain id 100):
+
+```bash
+opensea collections list --chain gnosis --limit 2
+opensea --chain gnosis events by-account 0x0000000000000000000000000000000000000001 # DEMO PLACEHOLDER address
+```
+
 ## Authentication
 
 ```bash
