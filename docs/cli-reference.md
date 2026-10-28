@@ -21,6 +21,15 @@ filter you leave out filters nothing, and a command that needs a chain fails
 without one. `events list` has no chain filter and refuses a `--chain` you
 pass; use `events by-account --chain` or `events by-nft <chain>` instead.
 
+`--chain` takes the OpenSea chain slug, for example `world_chain` for World
+Chain (chain ID 480; `worldchain` is accepted as an alias where the CLI resolves
+a chain to its numeric ID):
+
+```bash
+opensea --chain world_chain collections list --limit 2
+opensea events by-account 0x0000000000000000000000000000000000000001 --chain world_chain  # DEMO PLACEHOLDER address
+```
+
 ## Authentication
 
 ```bash
