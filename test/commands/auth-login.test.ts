@@ -84,6 +84,83 @@ describe("auth login", () => {
     )
   })
 
+  it("binds the link-wallet SIWX message to a short expiration", async () => {
+    process.env.OPENSEA_AUTH_TOKEN = "wallet-jwt"
+    process.env.OPENSEA_PRIVATE_KEY = "fixture-private-key"
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ nonce: "abcd1234efgh5678" }), {
+          status: 200,
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            linkedWalletAddress: "0xfBa662e1a8e91a350702cF3b87D0C2d2Fb4BA57F",
+          }),
+          { status: 200 },
+        ),
+      )
+    const before = Date.now()
+
+    await authCommand(
+      () => undefined,
+      createCommandTestContext().getFormat,
+    ).parseAsync(
+      ["link-wallet", "--api-base-url", "https://testnets-api.opensea.io"],
+      { from: "user" },
+    )
+
+    expect(fetchSpy.mock.calls.map(([url]) => String(url))).toEqual([
+      "https://testnets-api.opensea.io/api/v2/auth/siwe/nonce",
+      "https://testnets-api.opensea.io/api/v2/accounts/wallets/siwx",
+    ])
+    const { message } = signMessage.mock.calls[0][0] as unknown as {
+      message: string
+    }
+    const expiration = message.match(/Expiration Time: (\S+)/)?.[1]
+    expect(expiration).toBeDefined()
+    const ttl = Date.parse(expiration as string) - before
+    expect(ttl).toBeGreaterThan(0)
+    expect(ttl).toBeLessThanOrEqual(5 * 60 * 1000 + 1000)
+  })
+
+  it.each([
+    "https://example.invalid",
+    "https://api-opensea.example",
+    "http://api.opensea.io",
+    "https://api.opensea.io.example.com",
+    "not a url",
+  ])(
+    "link-wallet rejects untrusted --api-base-url %j before any request",
+    async apiBaseUrl => {
+      process.env.OPENSEA_AUTH_TOKEN = "wallet-jwt"
+      process.env.OPENSEA_PRIVATE_KEY = "fixture-private-key"
+      const fetchSpy = vi.spyOn(globalThis, "fetch")
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+      vi.spyOn(process, "exit").mockImplementation((code => {
+        throw new Error(`process.exit(${code})`)
+      }) as typeof process.exit)
+
+      await expect(
+        authCommand(
+          () => undefined,
+          createCommandTestContext().getFormat,
+        ).parseAsync(["link-wallet", "--api-base-url", apiBaseUrl], {
+          from: "user",
+        }),
+      ).rejects.toThrow("process.exit(1)")
+
+      expect(fetchSpy).not.toHaveBeenCalled()
+      expect(getAddress).not.toHaveBeenCalled()
+      expect(signMessage).not.toHaveBeenCalled()
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Untrusted SIWE API origin"),
+      )
+    },
+  )
+
   it("uses the current SIWE and scoped-token endpoints", async () => {
     const sessionHeaders = new Headers()
     sessionHeaders.append(

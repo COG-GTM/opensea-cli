@@ -26,6 +26,14 @@ export function isTrustedSiweOrigin(baseUrl: string): boolean {
   return TRUSTED_SIWE_ORIGINS.includes(url.origin)
 }
 
+export function assertTrustedSiweOrigin(baseUrl: string): void {
+  if (!isTrustedSiweOrigin(baseUrl)) {
+    throw new Error(
+      `Untrusted SIWE API origin: ${baseUrl}. Use one of: ${TRUSTED_SIWE_ORIGINS.join(", ")}.`,
+    )
+  }
+}
+
 interface ScopedTokenCreatedResponse {
   id: string
   token: string
@@ -175,11 +183,7 @@ export async function loginWithSiwe({
   privateKey: string
   scopes: string[]
 }): Promise<SiweLoginResult> {
-  if (!isTrustedSiweOrigin(baseUrl)) {
-    throw new Error(
-      `Untrusted SIWE API origin: ${baseUrl}. Use one of: ${TRUSTED_SIWE_ORIGINS.join(", ")}.`,
-    )
-  }
+  assertTrustedSiweOrigin(baseUrl)
 
   const adapter = new PrivateKeyAdapter({
     privateKey,
