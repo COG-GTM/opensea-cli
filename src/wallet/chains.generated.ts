@@ -39,6 +39,7 @@ export const CHAIN_IDS: Record<string, number> = {
   avalanche: 43114,
   gunzilla: 43419,
   ink: 57073,
+  bob: 60808,
   animechain: 69000,
   bera_chain: 80094,
   berachain: 80094,

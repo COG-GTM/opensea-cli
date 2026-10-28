@@ -32,6 +32,9 @@ opensea collections list --chain world_chain --limit 2
 # List collections on Kaia (chain id 8217)
 opensea --chain kaia collections list --limit 2
 
+# List collections on BOB (chain id 60808)
+opensea collections list --chain bob --limit 2
+
 # Get collection stats (volume, floor price, etc.)
 opensea collections stats tiny-dinos-eth
 

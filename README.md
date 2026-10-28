@@ -155,6 +155,8 @@ opensea --chain world_chain collections list --limit 2
 
 Known chain names map to EVM chain ids in `CHAIN_IDS` (for example `kaia` = 8217), so `opensea --chain kaia collections list --limit 2` filters collections on Kaia.
 
+`--chain` takes an OpenSea chain slug, for example `opensea collections list --chain bob --limit 2` for BOB (chain id `60808`).
+
 ## Programmatic SDK
 
 ```typescript

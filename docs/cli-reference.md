@@ -74,6 +74,9 @@ returns `8217`.
 opensea --chain kaia collections list --limit 2
 ```
 
+`--chain` takes an OpenSea chain slug such as `ethereum`, `base` or `bob`
+(BOB, chain id `60808`). Wallet commands also accept the numeric chain id.
+
 ## Authentication
 
 ```bash
