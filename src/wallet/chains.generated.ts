@@ -16,6 +16,7 @@ export const CHAIN_IDS: Record<string, number> = {
   flow: 747,
   stablechain: 988,
   hyperevm: 999,
+  lisk: 1135,
   sei: 1329,
   soneium: 1868,
   ronin: 2020,
