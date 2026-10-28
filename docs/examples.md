@@ -20,6 +20,9 @@ opensea collections list --chain mode --limit 2
 # List collections on Gnosis (chain id 100)
 opensea collections list --chain gnosis --limit 2
 
+# List collections on Moonbeam (chain id 1284); --chain also works before the subcommand
+opensea collections list --chain moonbeam --limit 2
+
 # Get collection stats (volume, floor price, etc.)
 opensea collections stats tiny-dinos-eth
 

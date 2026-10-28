@@ -45,6 +45,14 @@ opensea collections list --chain gnosis --limit 2
 opensea --chain gnosis events by-account 0x0000000000000000000000000000000000000001 # DEMO PLACEHOLDER address
 ```
 
+`--chain` takes a chain name or its numeric chain ID. For example, Moonbeam
+(chain ID 1284):
+
+```bash
+opensea --chain moonbeam collections list --limit 2
+opensea collections list --chain moonbeam --limit 2
+```
+
 ## Authentication
 
 ```bash
