@@ -21,6 +21,11 @@ filter you leave out filters nothing, and a command that needs a chain fails
 without one. `events list` has no chain filter and refuses a `--chain` you
 pass; use `events by-account --chain` or `events by-nft <chain>` instead.
 
+```bash
+# Filter by a specific chain, e.g. Lisk (chain id 1135)
+opensea --chain lisk collections list --limit 2
+```
+
 ## Authentication
 
 ```bash
