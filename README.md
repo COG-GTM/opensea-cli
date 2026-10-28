@@ -153,6 +153,8 @@ Global options: `--api-key`, `--chain` (default: ethereum), `--format` (json/tab
 opensea --chain world_chain collections list --limit 2
 ```
 
+Known chain names map to EVM chain ids in `CHAIN_IDS` (for example `kaia` = 8217), so `opensea --chain kaia collections list --limit 2` filters collections on Kaia.
+
 ## Programmatic SDK
 
 ```typescript

@@ -259,6 +259,16 @@ describe("subcommand --chain through the full program", () => {
       expect(requestedUrl().searchParams.get("chain")).toBe("world_chain")
     })
 
+    it("collections list --chain kaia filters by kaia", async () => {
+      respondWith({})
+
+      await run("--chain", "kaia", "collections", "list", "--limit", "2")
+
+      expect(requestedUrl().pathname).toBe("/api/v2/collections")
+      expect(requestedUrl().searchParams.get("chain")).toBe("kaia")
+      expect(requestedUrl().searchParams.get("limit")).toBe("2")
+    })
+
     it("does not send the program's default chain as a filter", async () => {
       respondWith({})
 

@@ -67,6 +67,13 @@ opensea --chain world_chain collections list --limit 2
 opensea events by-account 0x0000000000000000000000000000000000000001 --chain world_chain  # DEMO PLACEHOLDER address
 ```
 
+Example: list collections on Kaia (chain id 8217). `resolveChainId("kaia")`
+returns `8217`.
+
+```bash
+opensea --chain kaia collections list --limit 2
+```
+
 ## Authentication
 
 ```bash
