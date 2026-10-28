@@ -89,6 +89,20 @@ describe("refreshStoredToken", () => {
     expect(error.message).not.toContain('"code"')
   })
 
+  it("never exchanges a SIWE scoped token against an untrusted API base URL", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch")
+
+    await expect(
+      refreshStoredToken(siweToken, {
+        ...options,
+        apiBaseUrl: "https://api.opensea.io.evil.com",
+      }),
+    ).rejects.toThrow(
+      "Untrusted SIWE API origin: https://api.opensea.io.evil.com",
+    )
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
   it("passes other token exchange failures through unchanged", async () => {
     exchangeResponds(500, "upstream down")
 

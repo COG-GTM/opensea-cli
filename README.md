@@ -74,7 +74,9 @@ keeps the session needed to revoke the personal access token (PAT), and
 the stored JWT has expired, or a request with it returns 401, the CLI refreshes
 it once, prints a one-line notice to stderr, and continues. It does this only
 against OpenSea's own servers (not with `--base-url` or `--auth-base-url`), and
-`--no-auth-refresh` turns it off; `opensea auth refresh` runs it on demand. If
+`--no-auth-refresh` turns it off; `opensea auth refresh` runs it on demand.
+For a private-key login, `auth refresh` and `auth revoke` refuse to send the
+stored session or PAT to a `--base-url` that is not an OpenSea API host. If
 the refresh token itself is refused, the error names the login command to run
 instead. For interactive login, run
 `opensea login` without `--private-key`. See the

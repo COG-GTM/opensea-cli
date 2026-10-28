@@ -1,5 +1,6 @@
 import { createSiwxMessage, parseSiwxMessage } from "@opensea/sdk"
 import { PrivateKeyAdapter } from "@opensea/wallet-adapters"
+import { pathSegment } from "../parse.js"
 
 export const DEFAULT_TOKEN_TTL_SECONDS = 3600
 const SIWE_STATEMENT =
@@ -24,6 +25,18 @@ export function isTrustedSiweOrigin(baseUrl: string): boolean {
     return false
   }
   return TRUSTED_SIWE_ORIGINS.includes(url.origin)
+}
+
+/**
+ * Refuse to send SIWE credentials (session cookies, scoped tokens, signed
+ * messages) to an API origin other than OpenSea's own.
+ */
+export function assertTrustedSiweOrigin(baseUrl: string): void {
+  if (!isTrustedSiweOrigin(baseUrl)) {
+    throw new Error(
+      `Untrusted SIWE API origin: ${baseUrl}. Use one of: ${TRUSTED_SIWE_ORIGINS.join(", ")}.`,
+    )
+  }
 }
 
 interface ScopedTokenCreatedResponse {
@@ -127,6 +140,7 @@ export async function exchangeScopedToken(
   baseUrl: string,
   scopedToken: string,
 ): Promise<ScopedTokenExchangeResponse> {
+  assertTrustedSiweOrigin(baseUrl)
   const response = await fetch(`${baseUrl}/api/v2/auth/tokens/exchange`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -151,6 +165,7 @@ export async function refreshSiweSession(
   baseUrl: string,
   cookie: string,
 ): Promise<string> {
+  assertTrustedSiweOrigin(baseUrl)
   const response = await fetch(`${baseUrl}/api/v2/auth/session/refresh`, {
     method: "POST",
     headers: { Cookie: cookie },
@@ -175,11 +190,7 @@ export async function loginWithSiwe({
   privateKey: string
   scopes: string[]
 }): Promise<SiweLoginResult> {
-  if (!isTrustedSiweOrigin(baseUrl)) {
-    throw new Error(
-      `Untrusted SIWE API origin: ${baseUrl}. Use one of: ${TRUSTED_SIWE_ORIGINS.join(", ")}.`,
-    )
-  }
+  assertTrustedSiweOrigin(baseUrl)
 
   const adapter = new PrivateKeyAdapter({
     privateKey,
@@ -254,10 +265,13 @@ export async function loginWithSiwe({
   try {
     tokenData = await exchangeScopedToken(baseUrl, scopedToken.token)
   } catch (error) {
-    await fetch(`${baseUrl}/api/v2/auth/tokens/${scopedToken.id}`, {
-      method: "DELETE",
-      headers: { Cookie: cookie },
-    }).catch(() => undefined)
+    await fetch(
+      `${baseUrl}/api/v2/auth/tokens/${pathSegment(scopedToken.id)}`,
+      {
+        method: "DELETE",
+        headers: { Cookie: cookie },
+      },
+    ).catch(() => undefined)
     throw error
   }
 
