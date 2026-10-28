@@ -5,6 +5,44 @@ import type { OutputFormat } from "../output.js"
 import { formatOutput } from "../output.js"
 
 const PRIVY_API_BASE = "https://api.privy.io"
+const TRUSTED_PRIVY_ORIGINS = [PRIVY_API_BASE]
+
+/**
+ * Resolve the Privy API origin that will receive the app secret. Only
+ * Privy's own HTTPS origin is accepted from `PRIVY_API_BASE_URL` unless the
+ * caller opts in on the command line, so an environment variable alone can
+ * never redirect the credential to another host.
+ */
+export function resolvePrivyApiBase(
+  envValue: string | undefined,
+  allowCustom = false,
+): string {
+  if (envValue === undefined || envValue === "") return PRIVY_API_BASE
+  let url: URL
+  try {
+    url = new URL(envValue)
+  } catch {
+    throw new Error(`PRIVY_API_BASE_URL is not a valid URL: ${envValue}`)
+  }
+  if (TRUSTED_PRIVY_ORIGINS.includes(url.origin)) return url.origin
+  if (!allowCustom) {
+    throw new Error(
+      `PRIVY_API_BASE_URL origin ${url.origin} is not a trusted Privy ` +
+        `origin (${TRUSTED_PRIVY_ORIGINS.join(", ")}). Refusing to send ` +
+        "PRIVY_APP_SECRET to it. Pass --allow-custom-privy-url to target " +
+        "a local test server.",
+    )
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    throw new Error(
+      `PRIVY_API_BASE_URL must use https: or http:, got ${url.protocol}`,
+    )
+  }
+  if (url.username || url.password) {
+    throw new Error("PRIVY_API_BASE_URL must not contain credentials")
+  }
+  return url.href.replace(/\/+$/, "")
+}
 
 /**
  * `opensea wallet info` reports the security posture of the active
@@ -76,7 +114,16 @@ export function walletCommand(getFormat: () => OutputFormat): Command {
         "machine). Without an owner_id, env credentials can rewrite the " +
         "wallet's policy unilaterally.",
     )
-    .action(async (options: { chainType: string; ownerPublicKey?: string }) => {
+    .option(
+      "--allow-custom-privy-url",
+      "Allow PRIVY_API_BASE_URL to point at a non-Privy origin (e.g. a " +
+        "local test server). PRIVY_APP_SECRET is sent to that host.",
+    )
+    .action(async (options: {
+      chainType: string
+      ownerPublicKey?: string
+      allowCustomPrivyUrl?: boolean
+    }) => {
       const appId = process.env.PRIVY_APP_ID
       const appSecret = process.env.PRIVY_APP_SECRET
       if (!appId || !appSecret) {
@@ -87,8 +134,24 @@ export function walletCommand(getFormat: () => OutputFormat): Command {
         process.exit(1)
         return
       }
+      let baseUrl: string
       try {
-        const baseUrl = process.env.PRIVY_API_BASE_URL ?? PRIVY_API_BASE
+        baseUrl = resolvePrivyApiBase(
+          process.env.PRIVY_API_BASE_URL,
+          options.allowCustomPrivyUrl,
+        )
+      } catch (error) {
+        console.error(
+          JSON.stringify(
+            { error: "Wallet error", message: (error as Error).message },
+            null,
+            2,
+          ),
+        )
+        process.exit(1)
+        return
+      }
+      try {
         const credentials = Buffer.from(`${appId}:${appSecret}`).toString(
           "base64",
         )

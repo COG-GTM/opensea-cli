@@ -1,6 +1,9 @@
 import type { MockInstance } from "vitest"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { walletCommand } from "../../src/commands/wallet.js"
+import {
+  resolvePrivyApiBase,
+  walletCommand,
+} from "../../src/commands/wallet.js"
 
 const PRIVY_ENV = {
   PRIVY_APP_ID: "test-app",
@@ -22,6 +25,7 @@ describe("walletCommand", () => {
 
   afterEach(() => {
     for (const k of Object.keys(PRIVY_ENV)) delete process.env[k]
+    delete process.env.PRIVY_API_BASE_URL
     vi.restoreAllMocks()
   })
 
@@ -176,5 +180,82 @@ describe("walletCommand", () => {
 
     expect(exitSpy).toHaveBeenCalledWith(1)
     expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    "http://127.0.0.1:9",
+    "https://example.com",
+    "http://api.privy.io",
+    "https://api.privy.io.evil.example",
+    "https://api.privy.io@evil.example",
+    "not a url",
+  ])("create refuses PRIVY_API_BASE_URL=%s", async url => {
+    process.env.PRIVY_API_BASE_URL = url
+    const exitSpy = vi
+      .spyOn(process, "exit")
+      .mockImplementation(() => undefined as never)
+
+    const cmd = walletCommand(() => "json")
+    await cmd.parseAsync(["create"], { from: "user" })
+
+    expect(exitSpy).toHaveBeenCalledWith(1)
+    expect(fetchSpy).not.toHaveBeenCalled()
+    const errOut = consoleErrorSpy.mock.calls[0][0] as string
+    expect(errOut).toContain("PRIVY_API_BASE_URL")
+    expect(errOut).not.toContain("test-secret")
+  })
+
+  it("create accepts the Privy origin from PRIVY_API_BASE_URL", async () => {
+    process.env.PRIVY_API_BASE_URL = "https://api.privy.io/"
+    fetchSpy.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ id: "w", address: "0x1", chain_type: "ethereum" }),
+        { status: 200 },
+      ),
+    )
+
+    const cmd = walletCommand(() => "json")
+    await cmd.parseAsync(["create"], { from: "user" })
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "https://api.privy.io/v1/wallets",
+      expect.anything(),
+    )
+  })
+
+  it("create sends to a custom PRIVY_API_BASE_URL only with --allow-custom-privy-url", async () => {
+    process.env.PRIVY_API_BASE_URL = "http://127.0.0.1:4010/"
+    fetchSpy.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ id: "w", address: "0x1", chain_type: "ethereum" }),
+        { status: 200 },
+      ),
+    )
+
+    const cmd = walletCommand(() => "json")
+    await cmd.parseAsync(["create", "--allow-custom-privy-url"], {
+      from: "user",
+    })
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://127.0.0.1:4010/v1/wallets",
+      expect.anything(),
+    )
+  })
+})
+
+describe("resolvePrivyApiBase", () => {
+  it("defaults to the Privy API when unset or empty", () => {
+    expect(resolvePrivyApiBase(undefined)).toBe("https://api.privy.io")
+    expect(resolvePrivyApiBase("")).toBe("https://api.privy.io")
+  })
+
+  it("rejects non-http schemes and embedded credentials even with opt-in", () => {
+    expect(() => resolvePrivyApiBase("file:///etc/passwd", true)).toThrow(
+      /https: or http:/,
+    )
+    expect(() =>
+      resolvePrivyApiBase("https://user:pw@localhost:4010", true),
+    ).toThrow(/credentials/)
   })
 })
