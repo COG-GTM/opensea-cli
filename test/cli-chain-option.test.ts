@@ -17,6 +17,18 @@ import { createProgram } from "../src/program.js"
 // Parsing the subcommand alone can never catch that.
 
 const SENDER = "0xAbCdEf0000000000000000000000000000000001"
+const NEW_CHAINS = [
+  "cronos",
+  "gnosis",
+  "world_chain",
+  "lisk",
+  "moonbeam",
+  "kaia",
+  "mode",
+  "bob",
+  "taiko",
+  "scroll",
+]
 
 const deployArgs = [
   "--name",
@@ -166,6 +178,21 @@ describe("subcommand --chain through the full program", () => {
 
       expect(requestedUrl().pathname).toBe(path)
       expect(requestedUrl().searchParams.get("chain")).toBe("base")
+    })
+
+    describe.each(NEW_CHAINS)("--chain %s", chain => {
+      it.each([
+        ["after the subcommand", ["collections", "list", "--chain", chain]],
+        ["before the subcommand", ["--chain", chain, "collections", "list"]],
+      ])("placed %s reaches the request", async (_, argv) => {
+        respondWith({})
+
+        await run(...argv, "--limit", "2")
+
+        expect(requestedUrl().pathname).toBe("/api/v2/collections")
+        expect(requestedUrl().searchParams.get("chain")).toBe(chain)
+        expect(requestedUrl().searchParams.get("limit")).toBe("2")
+      })
     })
 
     it("does not send the program's default chain as a filter", async () => {

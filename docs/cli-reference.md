@@ -21,6 +21,35 @@ filter you leave out filters nothing, and a command that needs a chain fails
 without one. `events list` has no chain filter and refuses a `--chain` you
 pass; use `events by-account --chain` or `events by-nft <chain>` instead.
 
+`<chain>` is an OpenSea chain slug such as `ethereum`, `base` or `scroll`,
+and API filters such as `collections list --chain` take the slug only. Only
+wallet transaction sending resolves the chain to an EVM chain id (with
+`resolveChainId`, e.g. `scroll` is `534352`), and only there is a numeric chain
+id also accepted.
+
+| Chain | `--chain` slug | EVM chain id |
+| --- | --- | --- |
+| Cronos | `cronos` | 25 |
+| Gnosis | `gnosis` | 100 |
+| World Chain | `world_chain` (alias `worldchain`) | 480 |
+| Lisk | `lisk` | 1135 |
+| Moonbeam | `moonbeam` | 1284 |
+| Kaia | `kaia` | 8217 |
+| Mode | `mode` | 34443 |
+| BOB | `bob` | 60808 |
+| Taiko | `taiko` | 167000 |
+| Scroll | `scroll` | 534352 |
+
+`worldchain` is accepted as an alias only where the CLI resolves a chain to its
+numeric id.
+
+```bash
+opensea --chain mode collections list --limit 2
+opensea collections list --chain cronos --limit 2
+opensea --chain gnosis events by-account 0x0000000000000000000000000000000000000001 # DEMO PLACEHOLDER address
+opensea events by-account 0x0000000000000000000000000000000000000001 --chain world_chain # DEMO PLACEHOLDER address
+```
+
 ## Authentication
 
 ```bash
