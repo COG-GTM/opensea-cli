@@ -21,6 +21,13 @@ filter you leave out filters nothing, and a command that needs a chain fails
 without one. `events list` has no chain filter and refuses a `--chain` you
 pass; use `events by-account --chain` or `events by-nft <chain>` instead.
 
+Chains are named by their OpenSea slug, for example `ethereum`, `base` or
+`mode` (Mode, chain id 34443):
+
+```bash
+opensea --chain mode collections list --limit 2
+```
+
 ## Authentication
 
 ```bash
