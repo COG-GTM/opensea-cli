@@ -1,6 +1,7 @@
 import { OpenSeaOAuth } from "@opensea/sdk"
 import { DEFAULT_AUTH_BASE_URL, resolveOAuthClientId } from "./oauth-config.js"
 import {
+  assertTrustedSiweOrigin,
   DEFAULT_TOKEN_TTL_SECONDS,
   exchangeScopedToken,
   isTrustedSiweOrigin,
@@ -101,6 +102,9 @@ async function refreshSiwe(
   token: StoredToken,
   apiBaseUrl: string,
 ): Promise<RefreshedToken> {
+  // The stored scoped token is the SIWE refresh credential: never send it to
+  // an API origin other than OpenSea's own.
+  assertTrustedSiweOrigin(apiBaseUrl)
   let data: Awaited<ReturnType<typeof exchangeScopedToken>>
   try {
     data = await exchangeScopedToken(apiBaseUrl, token.refreshToken)
@@ -171,7 +175,8 @@ export async function refreshForRequest(
  * refresh sends the stored refresh token, which outlives the access token, so
  * it only happens when both the API and the auth server are OpenSea's own:
  * any `--base-url` outside the trusted API origins, or any `--auth-base-url`,
- * turns it off. `opensea auth refresh` still honors those overrides.
+ * turns it off. `opensea auth refresh` still honors `--auth-base-url` for
+ * OAuth tokens, but refuses to send a SIWE token to an untrusted `--base-url`.
  */
 export function canRefreshAutomatically(options: {
   apiBaseUrl: string

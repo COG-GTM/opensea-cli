@@ -11,7 +11,11 @@ import {
   warnIfInlinePrivateKey,
 } from "../auth/private-key.js"
 import { refreshStoredToken } from "../auth/refresh.js"
-import { loginWithSiwe, refreshSiweSession } from "../auth/siwe-login.js"
+import {
+  assertTrustedSiweOrigin,
+  loginWithSiwe,
+  refreshSiweSession,
+} from "../auth/siwe-login.js"
 import {
   clearTokens,
   listTokens,
@@ -381,6 +385,7 @@ export function authCommand(
             "Stored SIWE login cannot manage its token. Run `opensea login --private-key` again.",
           )
         }
+        assertTrustedSiweOrigin(baseUrl)
         const refreshedCookie = await refreshSiweSession(
           baseUrl,
           token.sessionCookie,
@@ -390,7 +395,7 @@ export function authCommand(
         // session token.
         saveToken({ ...token, sessionCookie: refreshedCookie })
         res = await fetch(
-          `${baseUrl}/api/v2/auth/tokens/${token.scopedTokenId}`,
+          `${baseUrl}/api/v2/auth/tokens/${pathSegment(token.scopedTokenId)}`,
           {
             method: "DELETE",
             headers: { Cookie: refreshedCookie },

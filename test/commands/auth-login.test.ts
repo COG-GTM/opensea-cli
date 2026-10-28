@@ -321,4 +321,64 @@ describe("auth login", () => {
       "0xfba662e1a8e91a350702cf3b87d0c2d2fb4ba57f",
     )
   })
+
+  it("refuses to send the SIWE session to an untrusted API base URL on revoke", async () => {
+    loadCurrentToken.mockReturnValue({
+      accessToken: "wallet-jwt",
+      refreshToken: "pat-value",
+      scopedTokenId: "381768924447939181",
+      sessionCookie:
+        "access_token=session-access; refresh_token=session-refresh",
+      expiresAt: "2030-01-01T00:00:00.000Z",
+      requestedScopes: ["write:wallets"],
+      scopes: ["write:wallets"],
+      address: "0xfba662e1a8e91a350702cf3b87d0c2d2fb4ba57f",
+      authMethod: "siwe",
+    })
+    const fetchSpy = vi.spyOn(globalThis, "fetch")
+
+    await expect(
+      authCommand(
+        () => "https://evil.com",
+        createCommandTestContext().getFormat,
+      ).parseAsync(["revoke"], { from: "user" }),
+    ).rejects.toThrow("Untrusted SIWE API origin: https://evil.com")
+
+    expect(fetchSpy).not.toHaveBeenCalled()
+    expect(saveToken).not.toHaveBeenCalled()
+    expect(removeToken).not.toHaveBeenCalled()
+  })
+
+  it("encodes the scoped token id in the revoke path", async () => {
+    loadCurrentToken.mockReturnValue({
+      accessToken: "wallet-jwt",
+      refreshToken: "pat-value",
+      scopedTokenId: "../keys",
+      sessionCookie:
+        "access_token=session-access; refresh_token=session-refresh",
+      expiresAt: "2030-01-01T00:00:00.000Z",
+      requestedScopes: ["write:wallets"],
+      scopes: ["write:wallets"],
+      address: "0xfba662e1a8e91a350702cf3b87d0c2d2fb4ba57f",
+      authMethod: "siwe",
+    })
+    const refreshHeaders = new Headers()
+    refreshHeaders.append("set-cookie", "access_token=a; Path=/")
+    refreshHeaders.append("set-cookie", "refresh_token=r; Path=/")
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response("{}", { status: 200, headers: refreshHeaders }),
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+
+    await authCommand(
+      () => undefined,
+      createCommandTestContext().getFormat,
+    ).parseAsync(["revoke"], { from: "user" })
+
+    expect(fetchSpy.mock.calls[1][0]).toBe(
+      "https://api.opensea.io/api/v2/auth/tokens/..%2Fkeys",
+    )
+  })
 })
