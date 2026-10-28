@@ -30,6 +30,13 @@ Chain names are the OpenSea chain slugs (for example `ethereum`, `base`,
 `taiko`). Wallet commands resolve them to EVM chain ids with
 `resolveChainId`, e.g. `taiko` is `167000`.
 
+Chains are named by their OpenSea slug, for example `ethereum`, `base` or
+`mode` (Mode, chain id 34443):
+
+```bash
+opensea --chain mode collections list --limit 2
+```
+
 ## Authentication
 
 ```bash

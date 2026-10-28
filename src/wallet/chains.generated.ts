@@ -28,6 +28,7 @@ export const CHAIN_IDS: Record<string, number> = {
   base: 8453,
   ape_chain: 33139,
   apechain: 33139,
+  mode: 34443,
   arbitrum: 42161,
   avalanche: 43114,
   gunzilla: 43419,

@@ -14,6 +14,9 @@ opensea collections list --limit 2
 # List collections on Scroll (chain id 534352)
 opensea collections list --chain scroll --limit 2
 
+# List collections on Mode (chain id 34443)
+opensea collections list --chain mode --limit 2
+
 # Get collection stats (volume, floor price, etc.)
 opensea collections stats tiny-dinos-eth
 

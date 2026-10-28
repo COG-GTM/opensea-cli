@@ -134,6 +134,11 @@ Global options: `--api-key`, `--chain` (default: ethereum), `--format` (json/tab
 
 `--chain` takes a chain name such as `base` or `taiko` (Taiko, chain id 167000), e.g. `opensea --chain taiko collections list --limit 2`.
 
+```bash
+# Filter collections on Mode (chain id 34443)
+opensea --chain mode collections list --limit 2
+```
+
 ## Programmatic SDK
 
 ```typescript
