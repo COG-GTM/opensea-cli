@@ -21,6 +21,10 @@ filter you leave out filters nothing, and a command that needs a chain fails
 without one. `events list` has no chain filter and refuses a `--chain` you
 pass; use `events by-account --chain` or `events by-nft <chain>` instead.
 
+Chain names are the OpenSea chain slugs (for example `ethereum`, `base`,
+`taiko`). Wallet commands resolve them to EVM chain ids with
+`resolveChainId`, e.g. `taiko` is `167000`.
+
 ## Authentication
 
 ```bash

@@ -132,6 +132,8 @@ This table is a high-level summary; run `opensea --help` for the current command
 
 Global options: `--api-key`, `--chain` (default: ethereum), `--format` (json/table/toon), `--base-url`. A `--chain` you pass, before or after the subcommand, reaches subcommands that take `--chain`; the `ethereum` default never does.
 
+`--chain` takes a chain name such as `base` or `taiko` (Taiko, chain id 167000), e.g. `opensea --chain taiko collections list --limit 2`.
+
 ## Programmatic SDK
 
 ```typescript
