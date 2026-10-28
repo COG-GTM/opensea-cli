@@ -132,6 +132,8 @@ This table is a high-level summary; run `opensea --help` for the current command
 
 Global options: `--api-key`, `--chain` (default: ethereum), `--format` (json/table/toon), `--base-url`. A `--chain` you pass, before or after the subcommand, reaches subcommands that take `--chain`; the `ethereum` default never does.
 
+Known chain names map to EVM chain ids in `CHAIN_IDS` (for example `kaia` = 8217), so `opensea --chain kaia collections list --limit 2` filters collections on Kaia.
+
 ## Programmatic SDK
 
 ```typescript
