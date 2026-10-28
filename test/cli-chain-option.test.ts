@@ -168,6 +168,18 @@ describe("subcommand --chain through the full program", () => {
       expect(requestedUrl().searchParams.get("chain")).toBe("base")
     })
 
+    it.each([
+      ["after the subcommand", ["collections", "list", "--chain", "cronos"]],
+      ["before the subcommand", ["--chain", "cronos", "collections", "list"]],
+    ])("--chain cronos placed %s reaches the request", async (_, argv) => {
+      respondWith({})
+
+      await run(...argv)
+
+      expect(requestedUrl().pathname).toBe("/api/v2/collections")
+      expect(requestedUrl().searchParams.get("chain")).toBe("cronos")
+    })
+
     it("does not send the program's default chain as a filter", async () => {
       respondWith({})
 

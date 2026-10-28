@@ -11,6 +11,9 @@ opensea collections get tiny-dinos-eth
 # List collections with a limit
 opensea collections list --limit 2
 
+# List collections on Cronos (chain id 25)
+opensea collections list --chain cronos --limit 2
+
 # Get collection stats (volume, floor price, etc.)
 opensea collections stats tiny-dinos-eth
 
