@@ -204,6 +204,19 @@ describe("subcommand --chain through the full program", () => {
       expect(requestedUrl().searchParams.get("chain")).toBe("mode")
     })
 
+    it.each([
+      ["after the subcommand", ["collections", "list", "--chain", "gnosis"]],
+      ["before the subcommand", ["--chain", "gnosis", "collections", "list"]],
+    ])("sends --chain gnosis placed %s", async (_, argv) => {
+      respondWith({})
+
+      await run(...argv, "--limit", "2")
+
+      expect(requestedUrl().pathname).toBe("/api/v2/collections")
+      expect(requestedUrl().searchParams.get("chain")).toBe("gnosis")
+      expect(requestedUrl().searchParams.get("limit")).toBe("2")
+    })
+
     it("does not send the program's default chain as a filter", async () => {
       respondWith({})
 

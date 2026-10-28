@@ -139,6 +139,11 @@ Global options: `--api-key`, `--chain` (default: ethereum), `--format` (json/tab
 opensea --chain mode collections list --limit 2
 ```
 
+```bash
+# Filter collections by Gnosis (chain id 100)
+opensea --chain gnosis collections list --limit 2
+```
+
 ## Programmatic SDK
 
 ```typescript
