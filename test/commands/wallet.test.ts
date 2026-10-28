@@ -219,7 +219,7 @@ describe("walletCommand", () => {
 
     expect(fetchSpy).toHaveBeenCalledWith(
       "https://api.privy.io/v1/wallets",
-      expect.anything(),
+      expect.objectContaining({ redirect: "error" }),
     )
   })
 

@@ -167,6 +167,7 @@ export function walletCommand(getFormat: () => OutputFormat): Command {
             "Content-Type": "application/json",
           },
           body: JSON.stringify(body),
+          redirect: "error",
         })
         if (!response.ok) {
           const errorBody = await response.text()
