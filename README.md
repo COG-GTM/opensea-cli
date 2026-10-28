@@ -132,6 +132,8 @@ This table is a high-level summary; run `opensea --help` for the current command
 
 Global options: `--api-key`, `--chain` (default: ethereum), `--format` (json/table/toon), `--base-url`. A `--chain` you pass, before or after the subcommand, reaches subcommands that take `--chain`; the `ethereum` default never does.
 
+`--chain` takes an OpenSea chain slug, for example `opensea collections list --chain bob --limit 2` for BOB (chain id `60808`).
+
 ## Programmatic SDK
 
 ```typescript

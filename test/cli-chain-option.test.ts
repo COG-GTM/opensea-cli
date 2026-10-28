@@ -168,6 +168,19 @@ describe("subcommand --chain through the full program", () => {
       expect(requestedUrl().searchParams.get("chain")).toBe("base")
     })
 
+    it.each([
+      ["before the subcommand", ["--chain", "bob", "collections", "list"]],
+      ["after the subcommand", ["collections", "list", "--chain", "bob"]],
+    ])("sends --chain bob %s as the chain filter", async (_, argv) => {
+      respondWith({})
+
+      await run(...argv, "--limit", "2")
+
+      expect(requestedUrl().pathname).toBe("/api/v2/collections")
+      expect(requestedUrl().searchParams.get("chain")).toBe("bob")
+      expect(requestedUrl().searchParams.get("limit")).toBe("2")
+    })
+
     it("does not send the program's default chain as a filter", async () => {
       respondWith({})
 
