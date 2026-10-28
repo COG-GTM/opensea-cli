@@ -26,6 +26,9 @@ opensea collections list --chain moonbeam --limit 2
 # List collections on a specific chain (Lisk, chain id 1135)
 opensea collections list --chain lisk --limit 2
 
+# List World Chain collections (chain ID 480)
+opensea collections list --chain world_chain --limit 2
+
 # Get collection stats (volume, floor price, etc.)
 opensea collections stats tiny-dinos-eth
 

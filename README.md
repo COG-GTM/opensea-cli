@@ -148,6 +148,11 @@ opensea --chain gnosis collections list --limit 2
 ```
 Global options: `--api-key`, `--chain` (default: ethereum), `--format` (json/table/toon), `--base-url`. A `--chain` you pass, before or after the subcommand, reaches subcommands that take `--chain`; the `ethereum` default never does. Example: `opensea collections list --chain lisk` (Lisk, chain id 1135).
 
+```bash
+# World Chain (chain ID 480): world_chain, alias worldchain
+opensea --chain world_chain collections list --limit 2
+```
+
 ## Programmatic SDK
 
 ```typescript

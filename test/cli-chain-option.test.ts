@@ -241,6 +241,24 @@ describe("subcommand --chain through the full program", () => {
       expect(requestedUrl().searchParams.get("chain")).toBe("lisk")
     })
 
+    it.each([
+      [
+        "after the subcommand",
+        ["collections", "list", "--chain", "world_chain"],
+      ],
+      [
+        "before the subcommand",
+        ["--chain", "world_chain", "collections", "list"],
+      ],
+    ])("sends --chain world_chain %s", async (_, argv) => {
+      respondWith({})
+
+      await run(...argv)
+
+      expect(requestedUrl().pathname).toBe("/api/v2/collections")
+      expect(requestedUrl().searchParams.get("chain")).toBe("world_chain")
+    })
+
     it("does not send the program's default chain as a filter", async () => {
       respondWith({})
 
